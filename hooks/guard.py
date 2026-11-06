@@ -34,7 +34,7 @@ def decide(payload: dict) -> tuple[str, str] | None:
     inp = payload.get("tool_input") or {}
     ev = tm.Event("call", 0, tool, inp)
     name = tool.lower()
-    cmd = tm._cmd(ev)
+    cmd = tm.command_skeleton(tm._cmd(ev))
 
     if cmd:
         for rule_id, pat in agentscan.PROSE_RULES:

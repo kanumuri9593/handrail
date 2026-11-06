@@ -4,9 +4,9 @@ Practical guardrails for coding agents (Claude Code, Cursor, Copilot, Gemini, Wi
 
 | Tool | When it runs | What it catches |
 |---|---|---|
-| **agentscan** (`scanner/agentscan.py`) | On your laptop, in pre-commit, or in CI as a GitHub Action | Dangerous agent setups in a repo: MCP `autoApprove`, `bypassPermissions`, `Bash(*)`, `enableAllProjectMcpServers`, keys committed in MCP configs, hooks that run remote code, `curl \| bash` instructions, prompt overrides, Trojan-Source Unicode |
+| **agentscan** (`scanner/agentscan.py`) | On your laptop, in pre-commit, or in CI as a GitHub Action | Dangerous agent setups in a repo: MCP `autoApprove`, `bypassPermissions`, `Bash(*)`, `enableAllProjectMcpServers`, keys committed in MCP configs, hooks that run remote code, `curl \| bash` instructions, prompt overrides, Trojan-Source Unicode, and coding agents in CI workflows with approvals off or on `pull_request_target`, plus Codex `approval_policy = "never"` |
 | **guard hook** (`hooks/guard.py`) | Live, before each agent tool call | Blocks remote-code execution, `rm -rf /`, exfiltration, and an agent switching itself into bypass mode. Asks first before credential reads, `--no-verify`, pushes and deploys, CI or hook edits, test skips, and secrets being written to files |
-| **transcript monitor** (`monitor/transcript_monitor.py`) and **stop check** (`hooks/stop_check.py`) | After a session, or as the agent tries to end its turn | What the agent actually did: risky commands, secret reads, guardrail tampering, test tampering, work outside the workspace, outward actions, and **unverified claims** ("all tests pass" with no passing run behind it, or claimed right after a failure) |
+| **transcript monitor** (`monitor/transcript_monitor.py`) and **stop check** (`hooks/stop_check.py`) | After a session, or as the agent tries to end its turn | What the agent actually did: risky commands, secret reads, guardrail tampering, test tampering, work outside the workspace, outward actions, and **unverified claims** ("all tests pass" with no passing run behind it, claimed right after a failure, or reached by skipping tests without saying so). Risky actions right after a tool result that told the agent what to do are raised to high |
 
 It needs only the Python 3.10+ standard library, with no API keys and no network. Secret values are always redacted in output.
 
@@ -25,6 +25,7 @@ The [v0.1 study](docs/REPORT-v0.1.md) covered 1,200 active public repos and 9,49
 python3 scanner/agentscan.py path/to/repo
 python3 scanner/agentscan.py . --fail-on high              # CI gate
 python3 scanner/agentscan.py . --format sarif -o out.sarif # GitHub code scanning
+python3 scanner/agentscan.py --home                        # your own laptop: ~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code
 python3 scanner/agentscan.py --list-rules
 
 # audit an agent session
