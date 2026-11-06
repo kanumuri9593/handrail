@@ -123,3 +123,25 @@ class Cost(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KeyLoading(unittest.TestCase):
+    def test_reads_dotenv_and_never_overrides_env(self):
+        import tempfile
+        from hie.run import load_key
+        old = os.environ.pop("ANTHROPIC_API_KEY", None)
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                p = os.path.join(d, ".env")
+                self.assertFalse(load_key(p))
+                with open(p, "w") as fh:
+                    fh.write("OTHER=1\nexport ANTHROPIC_API_KEY='test-not-a-key'\n")
+                self.assertTrue(load_key(p))
+                self.assertEqual(os.environ["ANTHROPIC_API_KEY"], "test-not-a-key")
+                os.environ["ANTHROPIC_API_KEY"] = "from-env"
+                self.assertTrue(load_key(p))
+                self.assertEqual(os.environ["ANTHROPIC_API_KEY"], "from-env")
+        finally:
+            os.environ.pop("ANTHROPIC_API_KEY", None)
+            if old is not None:
+                os.environ["ANTHROPIC_API_KEY"] = old

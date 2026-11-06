@@ -34,6 +34,26 @@ EST_TOKENS = (30_000, 4_000)  # rough per-episode (input, output) for the up-fro
 MAX_TURNS = 15
 
 
+def load_key(path: str = ".env") -> bool:
+    """Use ANTHROPIC_API_KEY from the environment, else from a gitignored .env file.
+
+    Keeping the key out of ~/.zshrc stops every Claude Code session on the
+    machine from silently billing this key instead of the user's subscription.
+    """
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                k, _, v = line.strip().removeprefix("export ").partition("=")
+                if k.strip() == "ANTHROPIC_API_KEY" and v.strip():
+                    os.environ["ANTHROPIC_API_KEY"] = v.strip().strip("'\"")
+                    return True
+    except OSError:
+        pass
+    return False
+
+
 def cost_of(model: str, usage) -> float:
     pin, pout = PRICES.get(model, (10.0, 50.0))
     g = (lambda k: getattr(usage, k, None) or (usage.get(k) if isinstance(usage, dict) else 0) or 0)
@@ -197,6 +217,9 @@ def main(argv=None) -> int:
             import anthropic
         except ImportError:
             print("pip install anthropic  (only the eval needs it)", file=sys.stderr)
+            return 2
+        if not load_key():
+            print("Put ANTHROPIC_API_KEY=... in .env in the repo root (gitignored), not in ~/.zshrc.", file=sys.stderr)
             return 2
         client = anthropic.Anthropic()
 

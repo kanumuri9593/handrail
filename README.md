@@ -91,6 +91,7 @@ Everything is simulated in memory. No command runs, nothing leaves the process, 
 
 ```bash
 python3 -m hie.run --dry-run naive                 # free: checks the harness with a scripted agent
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env      # gitignored; keep it out of ~/.zshrc
 pip install anthropic && python3 -m hie.run --repeats 1 --max-cost 6   # real pilot, about $4
 ```
 
