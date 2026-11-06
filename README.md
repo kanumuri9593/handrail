@@ -8,7 +8,7 @@ Practical guardrails for coding agents (Claude Code, Cursor, Copilot, Gemini, Wi
 | **guard hook** (`hooks/guard.py`) | Live, before each agent tool call | Blocks remote-code execution, `rm -rf /`, exfiltration, and an agent switching itself into bypass mode. Asks first before credential reads, `--no-verify`, pushes and deploys, CI or hook edits, test skips, and secrets being written to files |
 | **transcript monitor** (`monitor/transcript_monitor.py`) and **stop check** (`hooks/stop_check.py`) | After a session, or as the agent tries to end its turn | What the agent actually did: risky commands, secret reads, guardrail tampering, test tampering, work outside the workspace, outward actions, and **unverified claims** ("all tests pass" with no passing run behind it, or claimed right after a failure) |
 
-It needs only the Python 3.9+ standard library, with no API keys and no network. Secret values are always redacted in output.
+It needs only the Python 3.10+ standard library, with no API keys and no network. Secret values are always redacted in output.
 
 ## Why these rules
 

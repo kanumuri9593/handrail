@@ -16,7 +16,7 @@ hidden-channel rules are ~0% precision on real repos, so they are off by default
 (--include-noisy turns them on) and never above "low" severity, except Unicode
 bidi controls, which have no benign use in instruction files.
 
-Stdlib only. Python 3.9+.
+Stdlib only. Python 3.10+.
 """
 from __future__ import annotations
 
