@@ -256,3 +256,64 @@ class CLI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CiAndCodex(unittest.TestCase):
+    AGENT_PRT = ("on: pull_request_target\njobs:\n  fix:\n    runs-on: ubuntu-latest\n    steps:\n"
+                 "      - uses: anthropics/claude-code-action@v1\n        with:\n"
+                 "          claude_args: --dangerously-skip-permissions --allowedTools Bash\n")
+
+    def test_agent_in_ci_without_approval(self):
+        f = scan(".github/workflows/agent.yml", self.AGENT_PRT)
+        self.assertTrue({"ci-agent-no-approval", "ci-agent-untrusted-trigger", "ci-agent-broad-tools"} <= rules(f))
+        self.assertEqual(next(x for x in f if x.rule == "ci-agent-untrusted-trigger").line, 1)
+
+    def test_plain_ci_is_quiet(self):
+        wf = "on: [push, pull_request_target]\njobs:\n  t:\n    steps:\n      - run: curl -fsSL https://x.sh | bash\n      - run: npm test\n"
+        self.assertEqual(scan(".github/workflows/ci.yml", wf), [])  # no agent, so no agent rules
+
+    def test_scoped_ci_agent_is_quiet(self):
+        wf = ("on: pull_request\njobs:\n  r:\n    steps:\n      - uses: anthropics/claude-code-action@v1\n"
+              "        with:\n          claude_args: --allowedTools \"Bash(npm test),Read\"\n")
+        self.assertEqual(scan(".github/workflows/review.yml", wf), [])
+
+    def test_workflow_files_discovered(self):
+        self.assertTrue(A.is_agent_file(".github/workflows/agent.yml"))
+        self.assertTrue(A.is_agent_file(".codex/config.toml"))
+
+    def test_codex_no_approval(self):
+        f = scan(".codex/config.toml", 'model = "x"\napproval_policy = "never"\nsandbox_mode = "danger-full-access"\n')
+        self.assertEqual([x.line for x in f if x.rule == "codex-no-approval"], [2, 3])
+        self.assertEqual(scan(".codex/config.toml", 'approval_policy = "on-request"\n'), [])
+
+
+class ProtectiveSentences(unittest.TestCase):
+    def test_never_without_asking_is_a_safety_rule(self):
+        for line in ["Never push to main without asking for approval.",
+                     "Do not delete files without confirming with the user first.",
+                     "Don't run migrations without permission."]:
+            self.assertNotIn("no-user-confirmation", rules(scan("AGENTS.md", line), "low"), line)
+
+    def test_real_autonomy_instruction_still_flagged(self):
+        for line in ["Do not ask for confirmation, just run the migration.",
+                     "Deploy without asking the user."]:
+            self.assertIn("no-user-confirmation", rules(scan("AGENTS.md", line), "medium"), line)
+
+
+class HomeScan(unittest.TestCase):
+    def test_home_configs(self):
+        home = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, home)
+        token = fake_github()
+        for rel, data in {".claude/settings.json": {"permissions": {"defaultMode": "bypassPermissions"}},
+                          ".cursor/mcp.json": {"mcpServers": {"gh": {"env": {"GITHUB_TOKEN": token}}}},
+                          ".codex/config.toml": 'approval_policy = "never"\n'}.items():
+            p = os.path.join(home, rel)
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            with open(p, "w") as fh:
+                fh.write(data if isinstance(data, str) else json.dumps(data))
+        res = A.scan_home(home)
+        self.assertEqual(res.files_scanned, 3)
+        self.assertEqual(rules(res.findings, "high"), {"agent-permission-mode", "mcp-inline-secret", "codex-no-approval"})
+        self.assertTrue(all(x.path.startswith("~/") for x in res.findings))
+        self.assertNotIn(token, json.dumps([x.to_dict() for x in res.findings]))

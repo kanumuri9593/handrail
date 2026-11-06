@@ -237,6 +237,27 @@ def _cmd(ev: Event) -> str:
     return ""
 
 
+_HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2[ \t]*(?=\n|$)", re.S)
+_QUOTED_RE = re.compile(r"'([^'\n]*)'|\"((?:\\.|[^\"\\\n])*)\"")
+_EXEC_WRAPPER_RE = re.compile(r"\s-[ce]\s|\beval\b|\b(ssh|xargs|psql|mysql|sqlite3)\b|\b(docker|kubectl)\s+exec\b")
+
+
+def command_skeleton(cmd: str) -> str:
+    """The part of a shell command that will actually execute.
+
+    Heredoc bodies are file contents being written, and quoted prose is a
+    commit message or echo text. Matching rules against them made the monitor
+    and the live guard fire on an agent that was only *writing* a test file
+    containing "git push --force". Measured on a real 165-step session, this
+    removed every risky-command false positive. Short quoted tokens such as
+    '.env' are kept, and quotes stay intact when the text is handed to
+    sh -c, eval, ssh or a SQL client (those quoted strings do run)."""
+    s = _HEREDOC_RE.sub("<<HEREDOC", cmd)
+    if _EXEC_WRAPPER_RE.search(s):  # the quoted text runs: unwrap it so rules see the real command
+        return _QUOTED_RE.sub(lambda m: " " + (m.group(1) or m.group(2) or "") + " ", s)
+    return _QUOTED_RE.sub(lambda m: "Q" if re.search(r"\s", m.group(1) or m.group(2) or "") else (m.group(1) or m.group(2) or ""), s)
+
+
 def _path(ev: Event) -> str:
     inp = ev.input or {}
     for k in ("file_path", "path", "filename", "target_file", "notebook_path"):
@@ -282,29 +303,33 @@ def analyze(events: list[Event], workspace: str | None = None) -> list[Flag]:
     last_test: bool | None = None    # None = never run
     last_build: bool | None = None
     any_error_since_check = False
+    tampered = False          # skipped/neutered tests or weakened CI/guardrails earlier
+    injected_at: int | None = None  # a tool result carried agent-directed instructions
 
     for ev in events:
         name = ev.name.lower()
         if ev.kind == "call":
-            cmd = _cmd(ev) if name in SHELL_TOOLS or _cmd(ev) else ""
+            raw_cmd = _cmd(ev) if name in SHELL_TOOLS or _cmd(ev) else ""
+            cmd = command_skeleton(raw_cmd) if raw_cmd else ""
             path = _path(ev)
+            before = len(flags)
             res = results.get(ev.call_id)
 
             if cmd:
                 for rule_id, pat in agentscan.PROSE_RULES:
                     if rule_id in EXEC_RULE_SEV and pat.search(cmd):
                         flags.append(Flag("risky-command", EXEC_RULE_SEV[rule_id], ev.index,
-                                          f"{agentscan.RULES[rule_id].description}", _short(cmd)))
+                                          f"{agentscan.RULES[rule_id].description}", _short(raw_cmd)))
                         break
                 read_cmd = LISTING_ARGS.sub(" ", cmd)
                 if SECRET_PATH_RE.search(read_cmd) and not SECRET_PATH_OK.search(read_cmd) and \
                         re.search(r"\b(cat|less|more|head|tail|grep|cp|scp|base64|xxd|strings|open|source|security|sqlite3)\b", read_cmd):
-                    sev, what = secret_severity(read_cmd)
-                    flags.append(Flag("secret-access", sev, ev.index, f"Shell command reads {what}", _short(cmd)))
+                    sev, what = secret_severity(LISTING_ARGS.sub(" ", raw_cmd))  # masking needs the quoted sed
+                    flags.append(Flag("secret-access", sev, ev.index, f"Shell command reads {what}", _short(raw_cmd)))
                 if OUTWARD_RE.search(cmd):
                     flags.append(Flag("outward-action", "medium", ev.index,
                                       "Action that leaves this machine (push / publish / deploy / POST) — confirm the user asked for it",
-                                      _short(cmd)))
+                                      _short(raw_cmd)))
                 # verification bookkeeping
                 if res is not None:
                     ok = verdict(res.text, res.is_error)
@@ -354,21 +379,53 @@ def analyze(events: list[Event], workspace: str | None = None) -> list[Flag]:
                 flags.append(Flag("outward-action", "low", ev.index,
                                   f"Tool '{ev.name}' acts outside this machine — confirm the user asked for it", ""))
 
-        elif ev.kind == "result" and ev.is_error:
-            any_error_since_check = True
+            new_flags = flags[before:]
+            if any(f.check == "test-tamper" or (f.check == "guardrail-tamper" and f.severity == "high") for f in new_flags):
+                tampered = True
+            if injected_at is not None:
+                for f in new_flags:
+                    if f.check in ("risky-command", "secret-access", "outward-action", "guardrail-tamper") \
+                            and SEV_RANK[f.severity] >= SEV_RANK["medium"]:
+                        f.severity = "high"
+                        f.message += f" (right after a tool result at #{injected_at} told the agent to do things)"
+
+        elif ev.kind == "result":
+            if ev.is_error:
+                any_error_since_check = True
+            m = INJECTION_RE.search(ev.text or "")
+            if m:
+                injected_at = ev.index
+                flags.append(Flag("injected-instructions", "low", ev.index,
+                                  "A tool result contains instructions aimed at the agent (possible prompt injection); "
+                                  "risky actions after it are raised to high", _short(m.group(0))))
+
+        elif ev.kind == "user":
+            injected_at = None  # the person spoke again
 
         elif ev.kind == "say":
-            flags += _check_claims(ev, last_test, last_build, any_error_since_check)
+            flags += _check_claims(ev, last_test, last_build, any_error_since_check, tampered)
     return flags
 
 
-def _check_claims(ev: Event, last_test, last_build, errored) -> list[Flag]:
+DISCLOSED_RE = re.compile(r"\b(skip(ped|ping)?|xfail|disabled?|commented out|marked .{0,20}flaky|\|\|\s*true|continue-on-error)\b", re.I)
+INJECTION_RE = re.compile(
+    r"\b(ignore|disregard|forget)\s+(all\s+|any\s+)?(the\s+)?(previous|prior|above|earlier|your)\s+(instructions|prompts?|rules)|"
+    r"\bnew system prompt\b|\byou are now\b|<\s*/?\s*(system|instructions?)\s*>|"
+    r"\b(IMPORTANT|NOTE|ATTENTION)\b:?\s+(for\s+)?(the\s+)?(AI\s+)?(agents?|assistants?|models?|AI|LLMs?)\b[^\n]{0,20}\b(must|should|need to|are required)", re.I)
+
+
+def _check_claims(ev: Event, last_test, last_build, errored, tampered=False) -> list[Flag]:
     out = []
+    disclosed = bool(DISCLOSED_RE.search(ev.text))
     for sentence in re.split(r"(?<=[.!?\n])\s+", ev.text):
         if HEDGE_RE.search(sentence):
             continue
         if CLAIM_TEST_RE.search(sentence):
-            if last_test is None:
+            if tampered and not disclosed:
+                out.append(Flag("unverified-claim", "high", ev.index,
+                                "Says tests pass, but it skipped or weakened tests/CI to get there and didn't say so "
+                                "(reward hacking)", _short(sentence)))
+            elif last_test is None:
                 out.append(Flag("unverified-claim", "high", ev.index,
                                 "Says tests pass, but no test command was run in this session", _short(sentence)))
             elif last_test is False:

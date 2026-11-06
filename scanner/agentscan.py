@@ -51,6 +51,18 @@ AGENT_FILE_GLOBS = [
     ".windsurf/rules/*.md", ".amazonq/rules/*.md", ".kiro/steering/*.md",
     "claude_desktop_config.json", ".claude-plugin/plugin.json",
     "hooks/hooks.json",
+    ".github/workflows/*.yml", ".github/workflows/*.yaml", ".codex/config.toml",
+]
+
+# User-level agent configs (--home): where personal setups quietly drift.
+HOME_FILES = [
+    ".claude/settings.json", ".claude/settings.local.json", ".claude.json", ".claude/CLAUDE.md",
+    ".cursor/mcp.json", ".codeium/windsurf/mcp_config.json", ".gemini/settings.json",
+    ".codex/config.toml", ".config/github-copilot/mcp.json",
+    "Library/Application Support/Claude/claude_desktop_config.json",
+    ".config/Claude/claude_desktop_config.json",
+    "Library/Application Support/Code/User/mcp.json", ".config/Code/User/mcp.json",
+    "Library/Application Support/Code/User/settings.json",
 ]
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist",
              "build", ".tox", ".mypy_cache", ".pytest_cache", "vendor"}
@@ -85,6 +97,12 @@ def discover(root: str, all_files: bool = False) -> Iterator[str]:
 def file_family(path: str) -> str:
     p = path.replace(os.sep, "/").lower()
     base = p.rsplit("/", 1)[-1]
+    if "/.github/workflows/" in "/" + p and base.endswith((".yml", ".yaml")):
+        return "workflow"
+    if p.endswith(".codex/config.toml"):
+        return "codex"
+    if base == ".claude.json" or base == "mcp_config.json":
+        return "mcp"
     if "mcp" in base and base.endswith(".json") or base == "claude_desktop_config.json":
         return "mcp"
     if p.endswith(".claude/settings.json") or p.endswith(".claude/settings.local.json") \
@@ -137,6 +155,11 @@ RULES: dict[str, Rule] = {r.id: r for r in [
     Rule("mcp-unpinned-package", "config", "low", "MCP server runs an unpinned npx/uvx package (new code on every start)"),
     Rule("mcp-plain-http", "network", "medium", "MCP server reached over plain http to a non-local host"),
     Rule("hook-remote-exec", "execution", "high", "Hook command downloads and runs remote code"),
+    # CI agents and other agent configs
+    Rule("ci-agent-no-approval", "config", "high", "CI runs a coding agent with approvals switched off (--dangerously-skip-permissions, --yolo, --full-auto)"),
+    Rule("ci-agent-untrusted-trigger", "config", "high", "Coding agent runs on pull_request_target: text from outside contributors reaches an agent that holds repo secrets"),
+    Rule("ci-agent-broad-tools", "config", "medium", "CI coding agent is allowed unrestricted Bash"),
+    Rule("codex-no-approval", "config", "high", "Codex runs with no approval or no sandbox (approval_policy never / danger-full-access)"),
     # execution (prose + config)
     Rule("pipe-to-shell", "execution", "medium", "Downloads a script and pipes it into a shell"),
     Rule("encoded-exec", "execution", "medium", "Decodes an encoded payload and executes it"),
@@ -256,6 +279,11 @@ B64_RE = re.compile(r"(?<![A-Za-z0-9+/=_\-.])[A-Za-z0-9+/]{120,}={0,2}(?![A-Za-z
 JWT_RE = re.compile(r"eyJ[A-Za-z0-9_\-]+\.eyJ")
 
 
+PROTECTIVE_WITHOUT_RE = re.compile(
+    r"\b(never|don'?t|do not|must not|mustn'?t|should not|shouldn'?t|no)\b(?:(?!\b(ask|confirm|approval|permission)\b)[^.;\n]){1,80}"
+    r"\bwithout\s+(first\s+)?(ask|asking|confirm|confirming|confirmation|approval|permission|checking)", re.I)
+
+
 def is_defensive(line: str, start: int) -> bool:
     """True if the match sits after a negation ("never run curl | bash")."""
     window = line[max(0, start - 60):start]
@@ -277,6 +305,8 @@ def scan_prose(path: str, text: str) -> list[Finding]:
             # conceal-from-user) are not downgraded by it.
             if rule_id not in ("no-user-confirmation", "conceal-from-user") and is_defensive(line, m.start()):
                 sev, downgraded = "info", True
+            elif rule_id == "no-user-confirmation" and PROTECTIVE_WITHOUT_RE.search(line):
+                sev, downgraded = "info", True  # "Never push to main without asking for approval" is a safety rule
             out.append(Finding(rule_id, rule.category, sev, path, lineno, rule.description,
                                _snippet(line, m), downgraded))
         if BIDI_RE.search(line):
@@ -422,6 +452,62 @@ def scan_json(path: str, text: str, data) -> list[Finding]:
     return out
 
 
+AGENT_IN_CI_RE = re.compile(r"anthropics/claude-code-action|\bclaude\s+(-p|--print)\b|@anthropic-ai/claude-code|"
+                            r"openai/codex-action|\bcodex\s+exec\b|google-github-actions/run-gemini-cli|\bgemini\s+-p\b|"
+                            r"\bcursor-agent\b|\baider\b")
+
+
+def scan_workflow(path: str, text: str) -> list[Finding]:
+    """CI agents: the enterprise blast radius. A YAML-free line scan keeps this stdlib-only."""
+    out: list[Finding] = []
+
+    def add(rule_id: str, idx: int, evidence: str):
+        r = RULES[rule_id]
+        out.append(Finding(rule_id, r.category, r.severity, path, text.count("\n", 0, idx) + 1, r.description, evidence))
+
+    for m in re.finditer(r"--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b|--full-auto\b", text):
+        add("ci-agent-no-approval", m.start(), m.group(0))
+    agent = AGENT_IN_CI_RE.search(text)
+    if agent:
+        m = re.search(r"^\s*(on:\s*\[?[^\n]*)?\bpull_request_target\b", text, re.M)
+        if m:
+            add("ci-agent-untrusted-trigger", m.start(), f"pull_request_target + {agent.group(0)}")
+        for m in re.finditer(r"(allowed_tools|allowedTools|--allowedTools)[\s:=]+['\"]?([^\n'\"]*)", text):
+            tools = [t.strip() for t in re.split(r"[,\s]+", m.group(2)) if t.strip()]
+            if any(re.fullmatch(r"Bash(\(\s*\*?\s*(:\s*\*)?\))?", t) for t in tools):
+                add("ci-agent-broad-tools", m.start(), _short(m.group(0)))
+    return out
+
+
+def scan_codex(path: str, text: str) -> list[Finding]:
+    out: list[Finding] = []
+    for m in re.finditer(r'^\s*(approval_policy\s*=\s*"never"|sandbox_mode\s*=\s*"danger-full-access")', text, re.M):
+        r = RULES["codex-no-approval"]
+        out.append(Finding(r.id, r.category, r.severity, path, text.count("\n", 0, m.start()) + 1, r.description,
+                           m.group(1)))
+    return out
+
+
+def scan_home(home: str | None = None, include_noisy: bool = False) -> ScanResult:
+    """Scan the person's own user-level agent configs (paths shown as ~/...)."""
+    home = home or os.path.expanduser("~")
+    res = ScanResult()
+    for rel in HOME_FILES:
+        full = os.path.join(home, rel)
+        if not os.path.isfile(full):
+            continue
+        try:
+            if os.path.getsize(full) > MAX_BYTES:
+                continue
+            with open(full, "r", encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        res.files_scanned += 1
+        res.findings += scan_text(full, text, include_noisy=include_noisy, display_path="~/" + rel)
+    return res
+
+
 def _walk_strings(obj, key: str | None = None) -> Iterator[str]:
     if isinstance(obj, dict):
         for k, v in obj.items():
@@ -469,7 +555,11 @@ def scan_text(path: str, text: str, include_noisy: bool = False, display_path: s
                 data = json.loads(_strip_jsonc(text))
             except ValueError:
                 data = None
-    if data is not None:
+    if fam == "workflow":
+        findings += scan_workflow(disp, text)
+    elif fam == "codex":
+        findings += scan_codex(disp, text)
+    elif data is not None:
         findings += scan_json(disp, text, data)
         # Run execution/override prose rules on string values only, not on deny lists.
         deny = set()
@@ -585,6 +675,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--include-noisy", action="store_true",
                     help="also run low-precision hidden-channel rules (zero-width, base64, html comments)")
     ap.add_argument("--all-files", action="store_true", help="scan every file, not just known agent files")
+    ap.add_argument("--home", action="store_true",
+                    help="also scan your user-level agent configs (~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code)")
     ap.add_argument("--list-rules", action="store_true")
     ap.add_argument("--no-color", action="store_true")
     ap.add_argument("--version", action="version", version=f"agentscan {__version__}")
@@ -596,8 +688,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     res = ScanResult()
-    for p in a.paths:
-        r = scan_path(p, include_noisy=a.include_noisy, all_files=a.all_files)
+    paths = a.paths if (a.paths != ["."] or not a.home) else []
+    runs = [scan_path(p, include_noisy=a.include_noisy, all_files=a.all_files) for p in paths]
+    if a.home:
+        runs.append(scan_home(include_noisy=a.include_noisy))
+    for r in runs:
         res.files_scanned += r.files_scanned
         res.findings += r.findings
 
