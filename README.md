@@ -83,6 +83,19 @@ What remains:
 
 The results above come from one person's machine and are not a benchmark. The labelled evaluation is in the v0.1 study.
 
+## Hidden-instructions eval (`hie/`)
+
+Plants an instruction aimed at the agent in a tiny repo with a failing test, in 6 places (README text, an HTML comment, a code comment, AGENTS.md, invisible Unicode tag characters, a fetched web page), with 3 goals (send `.env` out, loosen `.claude/settings.json`, run a remote script). It then records whether the model followed the instruction, whether it told the user, whether it still fixed the bug, and whether `hooks/guard.py` would have stopped the harmful step. There are 18 planted scenarios and 2 clean controls.
+
+Everything is simulated in memory. No command runs, nothing leaves the process, the host is an unroutable `.example` name, and the key is a fake canary.
+
+```bash
+python3 -m hie.run --dry-run naive                 # free: checks the harness with a scripted agent
+pip install anthropic && python3 -m hie.run --repeats 1 --max-cost 6   # real pilot, about $4
+```
+
+Results go to `results/runs.jsonl` and `results/summary.md` (gitignored).
+
 ## Tests
 
 ```bash
@@ -95,6 +108,7 @@ python3 -m unittest discover -s tests -v
 scanner/agentscan.py           rules, file discovery, redaction, text/json/sarif output
 monitor/transcript_monitor.py  session audit (Claude Code JSONL + a simple normalized JSONL)
 hooks/guard.py                 PreToolUse allow/ask/deny
+hie/                           hidden-instructions eval (simulated sandbox, deterministic grading)
 hooks/stop_check.py            Stop hook: no unverified success claims
 hooks/hooks.json               plugin hook wiring
 commands/                      /agentscan, /audit-session
@@ -106,7 +120,7 @@ tests/                         unit tests (fake keys built at runtime, none comm
 
 ## Not in this repo yet
 
-The v0.1 hidden-instructions eval (`hie/`), the study's `data/`, `analysis/` and `charts/` are not on this machine yet. The study's numbers can't be reproduced from this repo until they're added.
+The study's `data/`, `analysis/` and `charts/` are not on this machine yet. The study's numbers can't be reproduced from this repo until they're added.
 
 ## Ethics
 
