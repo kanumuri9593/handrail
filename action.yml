@@ -1,0 +1,61 @@
+name: agentscan
+description: Fail CI on dangerous coding-agent setups (MCP auto-approve, bypassPermissions, Bash(*), committed keys, remote-exec hooks).
+author: Yeswanth Varma Kanumuri
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Folder to scan
+    default: "."
+  fail-on:
+    description: Fail the job at this severity or above (info|low|medium|high|none)
+    default: high
+  min-severity:
+    description: Hide findings below this severity in the report
+    default: low
+  include-noisy:
+    description: Also run the low-precision hidden-text rules
+    default: "false"
+  sarif:
+    description: Write a SARIF file for GitHub code scanning (path, or empty to skip)
+    default: agentscan.sarif
+
+outputs:
+  sarif:
+    description: Path of the SARIF report
+    value: ${{ inputs.sarif }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: "3.12"
+
+    - name: Write SARIF
+      if: ${{ inputs.sarif != '' }}
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        MIN_SEV: ${{ inputs.min-severity }}
+        NOISY: ${{ inputs.include-noisy }}
+        SARIF: ${{ inputs.sarif }}
+      run: |
+        extra=""; [ "$NOISY" = "true" ] && extra="--include-noisy"
+        python3 "$GITHUB_ACTION_PATH/scanner/agentscan.py" "$SCAN_PATH" --format sarif \
+          --min-severity "$MIN_SEV" $extra -o "$SARIF"
+
+    - name: Scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        MIN_SEV: ${{ inputs.min-severity }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        NOISY: ${{ inputs.include-noisy }}
+      run: |
+        extra=""; [ "$NOISY" = "true" ] && extra="--include-noisy"
+        python3 "$GITHUB_ACTION_PATH/scanner/agentscan.py" "$SCAN_PATH" \
+          --min-severity "$MIN_SEV" --fail-on "$FAIL_ON" --no-color $extra

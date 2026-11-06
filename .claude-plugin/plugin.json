@@ -1,0 +1,9 @@
+{
+  "name": "agent-guardrails",
+  "version": "0.2.0",
+  "description": "Blocks risky agent actions before they run, catches unverified 'tests pass' claims, and scans repos for dangerous agent configs.",
+  "author": { "name": "Yeswanth Varma Kanumuri" },
+  "repository": "https://github.com/kanumuri9593/agent-guardrails-lab",
+  "license": "MIT",
+  "keywords": ["security", "guardrails", "mcp", "agents", "ci"]
+}

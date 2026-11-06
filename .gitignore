@@ -1,0 +1,13 @@
+DISCLOSURE_private.md
+data/raw/
+results/
+.env
+*.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+*.sarif

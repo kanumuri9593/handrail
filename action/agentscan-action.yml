@@ -1,0 +1,31 @@
+# Example workflow: copy to .github/workflows/agentscan.yml in any repo.
+# Fails the PR on high-severity agent-config risks and shows every finding
+# in the Security tab (code scanning).
+name: agentscan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - id: agentscan
+        uses: kanumuri9593/agent-guardrails-lab@main   # pin to a tag or SHA once released
+        with:
+          fail-on: high
+
+      - name: Upload to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.agentscan.outputs.sarif }}
+          category: agentscan
