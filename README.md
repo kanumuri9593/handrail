@@ -1,5 +1,13 @@
 # Agent Guardrails Lab
 
+> **For reviewers, a 5-minute read**
+>
+> - **The question:** coding agents now read untrusted repos, run shell commands and hold real credentials. What actually goes wrong in practice, and can cheap, deterministic guardrails catch it?
+> - **What I measured:** [a study of 1,200 active public repos](docs/REPORT-v0.1.md) (9,499 agent instruction and config files, hand-verified). The real risk sat in *configs*, such as auto-approved MCP servers, bypassed permissions and live keys committed in MCP files, not in exotic prompt injection. Recall is at least about 97% on a random sample of unflagged files.
+> - **What I built from it:** one rule set in four places. A scanner for repos or your own laptop, a GitHub Action that blocks risky PRs (with SARIF output), a live Claude Code hook that stops dangerous tool calls, and a transcript monitor plus stop check that catch agents claiming "tests pass" after quietly skipping them. It uses only the standard library, needs no API keys, and redacts every secret.
+> - **What I'm testing now:** [`hie/`](hie/) plants hidden instructions (README text, HTML comments, code comments, AGENTS.md, invisible Unicode, fetched web pages) in a toy repo. It measures how often Claude models follow them, whether they tell the user, and whether the guard would have stopped them. *Pilot results pending.*
+> - **Try it:** `python3 scanner/agentscan.py path/to/repo`, or `python3 scanner/agentscan.py --home` to scan your own agent setup.
+
 Practical guardrails for coding agents (Claude Code, Cursor, Copilot, Gemini, Windsurf and others). There are three tools that share one rule set:
 
 | Tool | When it runs | What it catches |
