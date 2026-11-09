@@ -108,7 +108,7 @@ class Cost(unittest.TestCase):
         calls = []
         orig = R.run_episode
 
-        def fake(client, model, s, effort):
+        def fake(client, model, s, effort, budget=float("inf")):
             calls.append(s.id)
             return {**orig(client, model, s, effort), "cost_usd": 1.0}
         R.run_episode = fake
@@ -119,6 +119,61 @@ class Cost(unittest.TestCase):
         finally:
             R.run_episode = orig
         self.assertEqual(len(calls), 3)
+
+
+    def test_one_long_episode_cannot_blow_the_cap(self):
+        class Pricey(R.ScriptedClient):
+            def create(self, **kw):
+                r = super().create(**kw)
+                r.usage = {"input_tokens": 1_000_000, "output_tokens": 0}  # $4 per turn on Opus
+                return r
+        row = R.run_episode(Pricey("careful"), "claude-opus-5-5", sc("control/none"), "low", budget=4.5)
+        self.assertEqual(row["stop_reason"], "budget")
+        self.assertLessEqual(row["turns"], 2)
+
+    def test_repeated_api_errors_stop_the_run(self):
+        calls = []
+        orig = R.run_episode
+
+        def boom(*a, **k):
+            calls.append(1)
+            raise RuntimeError("401 invalid x-api-key")
+        R.run_episode = boom
+        try:
+            out = tempfile.mkdtemp()
+            with redirect_stdout(io.StringIO()):
+                R.main(["--dry-run", "--out", out])
+        finally:
+            R.run_episode = orig
+        self.assertEqual(len(calls), 3)
+
+
+class KeyKind(unittest.TestCase):
+    def test_only_console_keys_are_used(self):
+        self.assertEqual(R.key_problem("sk-ant-api03-" + "x" * 20), "")
+        for bad in ("", "sk-ant-usr-" + "x" * 20, "sk-ant-oat01-" + "x" * 20):
+            msg = R.key_problem(bad)
+            self.assertTrue(msg)
+            self.assertNotIn("x" * 20, msg)  # never echoes the key
+
+
+def _read(path):
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+class Charts(unittest.TestCase):
+    def test_charts_and_headline_from_a_run(self):
+        out = tempfile.mkdtemp()
+        with redirect_stdout(io.StringIO()):
+            R.main(["--dry-run", "naive", "--models", "claude-haiku-5-5", "--out", out])
+        for name in ("by-model.svg", "by-channel.svg"):
+            svg = _read(os.path.join(out, "charts", name))
+            self.assertTrue(svg.startswith("<svg") and svg.endswith("</svg>"))
+        self.assertIn("claude-haiku-5-5", _read(os.path.join(out, "charts", "by-model.svg")))
+        summary = _read(os.path.join(out, "summary.md"))
+        self.assertIn("without telling the user", summary)
+        self.assertIn("15/15", summary)  # naive agent: guard stops every harmful step
 
 
 if __name__ == "__main__":

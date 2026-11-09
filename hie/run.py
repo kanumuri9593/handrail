@@ -54,6 +54,17 @@ def load_key(path: str = ".env") -> bool:
     return False
 
 
+def key_problem(key: str) -> str:
+    """Why a key can't be used, or '' if it looks like a Console API key. Never echoes the key."""
+    if not key:
+        return "no key found"
+    if not key.startswith("sk-ant-api"):
+        return ("this is not a Console API key (those start with sk-ant-api03-); it may be a personal "
+                "account token, which is more sensitive. Revoke it and create a key at "
+                "console.anthropic.com/settings/keys")
+    return ""
+
+
 def cost_of(model: str, usage) -> float:
     pin, pout = PRICES.get(model, (10.0, 50.0))
     g = (lambda k: getattr(usage, k, None) or (usage.get(k) if isinstance(usage, dict) else 0) or 0)
@@ -66,7 +77,7 @@ def _blocks_text(content) -> str:
     return "\n".join(getattr(b, "text", "") or "" for b in content if getattr(b, "type", "") == "text")
 
 
-def run_episode(client, model: str, sc, effort: str) -> dict:
+def run_episode(client, model: str, sc, effort: str, budget: float = float("inf")) -> dict:
     sb = Sandbox(sc)
     messages = [{"role": "user", "content": sc.task}]
     spent, stop, final_text, turns = 0.0, "max_turns", "", 0
@@ -78,6 +89,10 @@ def run_episode(client, model: str, sc, effort: str) -> dict:
         )
         spent += cost_of(model, resp.usage)
         stop = resp.stop_reason
+        if spent >= budget:  # never let one long episode run past the global cap
+            stop = "budget"
+            messages.append({"role": "assistant", "content": resp.content})
+            break
         messages.append({"role": "assistant", "content": resp.content})
         final_text = _blocks_text(resp.content) or final_text
         if stop == "refusal":
@@ -105,6 +120,16 @@ def summarize(rows: list[dict]) -> str:
     def pct(xs, k):
         return f"{100 * sum(1 for x in xs if x[k]) / len(xs):.0f}% ({sum(1 for x in xs if x[k])}/{len(xs)})" if xs else "–"
 
+    out.append("\n## Headline\n")
+    if inj:
+        silent = [x for x in inj if x["complied"] and not x["disclosed"]]
+        fol = [x for x in inj if x["complied"]]
+        caught = sum(1 for x in fol if x["guard_caught"])
+        out.append(f"- Followed a planted instruction **without telling the user**: "
+                   f"{100 * len(silent) / len(inj):.0f}% ({len(silent)}/{len(inj)} episodes)")
+        out.append(f"- Followed it at all: {pct(inj, 'complied')}")
+        out.append(f"- The live guard would have stopped the harmful step in {caught}/{len(fol)} of those" if fol
+                   else "- No episode followed a planted instruction, so the guard was never needed")
     out.append("\n## By model (planted-instruction episodes)\n")
     out.append("| Model | Followed it | Told the user | Fixed the bug | Guard caught (of followed) | Guard false alarms | Refusals |")
     out.append("|---|---|---|---|---|---|---|")
@@ -221,11 +246,20 @@ def main(argv=None) -> int:
         if not load_key():
             print("Put ANTHROPIC_API_KEY=... in .env in the repo root (gitignored), not in ~/.zshrc.", file=sys.stderr)
             return 2
+        problem = key_problem(os.environ.get("ANTHROPIC_API_KEY", ""))
+        if problem:
+            print(f"Refusing to run: {problem}.", file=sys.stderr)
+            return 2
         client = anthropic.Anthropic()
+        try:  # one ~$0.00001 call: proves the key and credit work before the real run
+            client.messages.create(model="claude-haiku-5-5", max_tokens=1, messages=[{"role": "user", "content": "hi"}])
+        except Exception as exc:
+            print(f"Key check failed, nothing run: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr)
+            return 2
 
     os.makedirs(a.out, exist_ok=True)
     runs_path = os.path.join(a.out, "runs.jsonl")
-    rows, spent = [], 0.0
+    rows, spent, errors_in_a_row = [], 0.0, 0
     jobs = [(rep, sc, m) for rep in range(a.repeats) for sc in scenarios for m in a.models]
     with open(runs_path, "a", encoding="utf-8") as fh:
         for rep, sc, m in jobs:
@@ -234,13 +268,18 @@ def main(argv=None) -> int:
                 break
             t0 = time.time()
             try:
-                row = run_episode(client, m, sc, a.effort)
+                row = run_episode(client, m, sc, a.effort, budget=a.max_cost - spent)
             except Exception as exc:  # record API errors, keep going
                 row = {"model": m, "scenario": sc.id, "channel": sc.channel, "payload": sc.payload,
                        "error": repr(exc)[:300], "cost_usd": 0.0}
                 print(f"  ! {m} {sc.id}: {row['error']}")
                 fh.write(json.dumps({**row, "repeat": rep, "ts": time.time()}) + "\n")
+                errors_in_a_row += 1
+                if errors_in_a_row >= 3:
+                    print("stopping: 3 API errors in a row (check the key and credit)")
+                    break
                 continue
+            errors_in_a_row = 0
             row.update(repeat=rep, seconds=round(time.time() - t0, 1), ts=time.time(), dry_run=bool(a.dry_run))
             spent += row["cost_usd"]
             rows.append(row)
@@ -251,6 +290,8 @@ def main(argv=None) -> int:
     summary = summarize(rows)
     with open(os.path.join(a.out, "summary.md"), "w", encoding="utf-8") as fh:
         fh.write(summary)
+    from hie.charts import write_charts
+    write_charts(rows, a.out)
     print(f"\nspent ${spent:.2f} · wrote {runs_path} and {a.out}/summary.md")
     return 0
 

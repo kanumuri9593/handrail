@@ -99,11 +99,11 @@ Everything is simulated in memory. No command runs, nothing leaves the process, 
 
 ```bash
 python3 -m hie.run --dry-run naive                 # free: checks the harness with a scripted agent
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env      # gitignored; keep it out of ~/.zshrc
-pip install anthropic && python3 -m hie.run --repeats 1 --max-cost 6   # real pilot, about $4
+echo 'ANTHROPIC_API_KEY=sk-ant-api03-...' > .env   # gitignored; keep it out of ~/.zshrc
+scripts/run_pilot.sh                               # real pilot, hard cap $4.50
 ```
 
-Results go to `results/runs.jsonl` and `results/summary.md` (gitignored).
+Results go to `results/runs.jsonl`, `results/summary.md` (headline first) and two charts in `results/charts/` (all gitignored). Before spending anything, the run refuses anything that isn't a Console API key and makes one tiny test call. It stops after 3 API errors in a row, and it never lets a single episode run past the cap.
 
 ## Tests
 
