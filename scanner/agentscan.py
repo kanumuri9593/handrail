@@ -457,6 +457,12 @@ AGENT_IN_CI_RE = re.compile(r"anthropics/claude-code-action|\bclaude\s+(-p|--pri
                             r"\bcursor-agent\b|\baider\b")
 
 
+CI_ACTOR_GUARD_RE = re.compile(
+    r"author_association|github\.actor\s*==|github\.event\.sender\.login\s*==|github\.triggering_actor\s*==|"
+    r"github\.event\.pull_request\.head\.repo\.full_name\s*==\s*github\.repository|"
+    r"head\.repo\.fork\s*==\s*false|check-permissions|actions-team-membership|getCollaboratorPermissionLevel", re.I)
+
+
 def scan_workflow(path: str, text: str) -> list[Finding]:
     """CI agents: the enterprise blast radius. A YAML-free line scan keeps this stdlib-only."""
     out: list[Finding] = []
@@ -471,7 +477,15 @@ def scan_workflow(path: str, text: str) -> list[Finding]:
     if agent:
         m = re.search(r"^\s*(on:\s*\[?[^\n]*)?\bpull_request_target\b", text, re.M)
         if m:
-            add("ci-agent-untrusted-trigger", m.start(), f"pull_request_target + {agent.group(0)}")
+            guard = CI_ACTOR_GUARD_RE.search(text)
+            if guard:
+                r = RULES["ci-agent-untrusted-trigger"]
+                out.append(Finding("ci-agent-untrusted-trigger", r.category, "medium", path,
+                                   text.count("\n", 0, m.start()) + 1,
+                                   r.description + " (an actor check was found: confirm it covers every job that has secrets)",
+                                   f"pull_request_target + {agent.group(0)}; guard: {_short(guard.group(0))}", downgraded=True))
+            else:
+                add("ci-agent-untrusted-trigger", m.start(), f"pull_request_target + {agent.group(0)}")
         for m in re.finditer(r"(allowed_tools|allowedTools|--allowedTools)[\s:=]+['\"]?([^\n'\"]*)", text):
             tools = [t.strip() for t in re.split(r"[,\s]+", m.group(2)) if t.strip()]
             if any(re.fullmatch(r"Bash(\(\s*\*?\s*(:\s*\*)?\))?", t) for t in tools):
