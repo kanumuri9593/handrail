@@ -1,0 +1,11 @@
+# Handrail for GitLab CI: include this file or paste the job into .gitlab-ci.yml.
+handrail:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install --quiet handrail==0.3.0
+    - handrail scan . --format sarif -o handrail.sarif --min-severity low || true
+    - handrail scan . --min-severity low --fail-on high --no-color
+  artifacts:
+    when: always
+    paths: [handrail.sarif]

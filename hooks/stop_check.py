@@ -34,7 +34,7 @@ def main() -> int:
         return 0
     reasons = "; ".join(f"{f.message} (\"{f.evidence}\")" for f in claims[:3])
     print(json.dumps({"decision": "block",
-                      "reason": "agent-guardrails: " + reasons +
+                      "reason": "handrail: " + reasons +
                                 ". Run the check now and report the real result, or restate the claim as unverified."}))
     return 0
 

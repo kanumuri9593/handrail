@@ -1,5 +1,5 @@
-name: agentscan
-description: Fail CI on dangerous coding-agent setups (MCP auto-approve, bypassPermissions, Bash(*), committed keys, remote-exec hooks).
+name: Handrail agent guardrails
+description: Fail CI on dangerous AI coding-agent setups (MCP auto-approve, bypassPermissions, Bash(*), committed keys, agents in CI with approvals off). Evidence-based rules, SARIF output.
 author: Yeswanth Varma Kanumuri
 branding:
   icon: shield
@@ -20,7 +20,7 @@ inputs:
     default: "false"
   sarif:
     description: Write a SARIF file for GitHub code scanning (path, or empty to skip)
-    default: agentscan.sarif
+    default: handrail.sarif
 
 outputs:
   sarif:

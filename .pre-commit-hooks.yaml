@@ -1,6 +1,13 @@
-- id: agentscan
-  name: agentscan (agent config risks)
+- id: handrail
+  name: handrail (agent config risks)
   description: Block commits that add dangerous coding-agent settings or committed keys
+  entry: scanner/agentscan.py --fail-on high --min-severity medium
+  language: script
+  pass_filenames: true
+  files: (AGENTS\.md|CLAUDE\.md|GEMINI\.md|\.cursorrules|\.windsurfrules|mcp\.json|\.claude/|\.cursor/|\.codex/|\.github/copilot-instructions\.md|\.github/workflows/)
+# Old id kept so existing configs keep working.
+- id: agentscan
+  name: agentscan (renamed to handrail)
   entry: scanner/agentscan.py --fail-on high --min-severity medium
   language: script
   pass_filenames: true

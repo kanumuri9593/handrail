@@ -1,0 +1,14 @@
+{
+  "name": "handrail-ai",
+  "version": "0.3.0",
+  "description": "Evidence-based guardrails for AI coding agents: scan risky agent setups (MCP auto-approve, bypassPermissions, leaked keys), stop dangerous tool calls live, catch unverified 'tests pass' claims.",
+  "bin": { "handrail": "bin/handrail.js" },
+  "files": ["bin/", "py/", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "keywords": ["ai", "agents", "claude-code", "mcp", "security", "guardrails", "ci", "sarif", "prompt-injection", "cursor", "copilot"],
+  "homepage": "https://handrail.oneenergytogether.com",
+  "repository": { "type": "git", "url": "git+https://github.com/kanumuri9593/handrail.git" },
+  "author": "Yeswanth Varma Kanumuri",
+  "license": "MIT",
+  "scripts": { "prepack": "node scripts/bundle.js" }
+}

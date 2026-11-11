@@ -29,7 +29,7 @@ import sys
 from dataclasses import dataclass, field, asdict
 from typing import Iterable, Iterator
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 SEVERITIES = ["info", "low", "medium", "high"]
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
@@ -635,7 +635,7 @@ def format_text(res: ScanResult, min_sev: str, color: bool) -> str:
             lines.append(f"       └ {f.evidence}")
     counts = {s: sum(1 for f in res.findings if f.severity == s) for s in SEVERITIES}
     lines.append("")
-    lines.append(f"agentscan {__version__}: {res.files_scanned} agent files scanned · "
+    lines.append(f"handrail scan {__version__}: {res.files_scanned} agent files scanned · "
                  f"high {counts['high']} · medium {counts['medium']} · low {counts['low']} · info {counts['info']}")
     return "\n".join(lines)
 
@@ -648,8 +648,8 @@ def format_sarif(res: ScanResult, min_sev: str) -> dict:
         "version": "2.1.0",
         "runs": [{
             "tool": {"driver": {
-                "name": "agentscan", "version": __version__,
-                "informationUri": "https://github.com/kanumuri9593/agent-guardrails-lab",
+                "name": "handrail", "version": __version__,
+                "informationUri": "https://github.com/kanumuri9593/handrail",
                 "rules": [{"id": r, "shortDescription": {"text": RULES[r].description},
                            "properties": {"category": RULES[r].category,
                                           "security-severity": {"high": "8.0", "medium": "5.0", "low": "3.0", "info": "1.0"}[RULES[r].severity]}}
@@ -665,7 +665,7 @@ def format_sarif(res: ScanResult, min_sev: str) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="agentscan", description=__doc__.split("\n\n")[0])
+    ap = argparse.ArgumentParser(prog="handrail scan", description=__doc__.split("\n\n")[0])
     ap.add_argument("paths", nargs="*", default=["."], help="repo folders or files to scan")
     ap.add_argument("--format", choices=["text", "json", "sarif"], default="text")
     ap.add_argument("--output", "-o", help="write report to this file instead of stdout")
@@ -679,7 +679,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="also scan your user-level agent configs (~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code)")
     ap.add_argument("--list-rules", action="store_true")
     ap.add_argument("--no-color", action="store_true")
-    ap.add_argument("--version", action="version", version=f"agentscan {__version__}")
+    ap.add_argument("--version", action="version", version=f"handrail {__version__}")
     a = ap.parse_args(argv)
 
     if a.list_rules:

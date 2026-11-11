@@ -1,7 +1,7 @@
-# Example workflow: copy to .github/workflows/agentscan.yml in any repo.
+# Example workflow: copy to .github/workflows/handrail.yml in any repo.
 # Fails the PR on high-severity agent-config risks and shows every finding
 # in the Security tab (code scanning).
-name: agentscan
+name: handrail
 
 on:
   pull_request:
@@ -18,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - id: agentscan
-        uses: kanumuri9593/agent-guardrails-lab@main   # pin to a tag or SHA once released
+      - id: handrail
+        uses: kanumuri9593/handrail@v0.3.0
         with:
           fail-on: high
 
@@ -27,5 +27,5 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: ${{ steps.agentscan.outputs.sarif }}
-          category: agentscan
+          sarif_file: ${{ steps.handrail.outputs.sarif }}
+          category: handrail

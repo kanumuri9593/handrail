@@ -476,7 +476,7 @@ def monitor_file(path: str, workspace: str | None = None) -> tuple[list[Event], 
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="transcript_monitor", description="Audit a coding-agent session transcript.")
+    ap = argparse.ArgumentParser(prog="handrail audit", description="Audit a coding-agent session transcript.")
     ap.add_argument("transcripts", nargs="*")
     ap.add_argument("--latest", action="store_true", help="audit the newest Claude Code session on this machine")
     ap.add_argument("--workspace", help="project folder the agent was supposed to stay in (default: transcript cwd)")

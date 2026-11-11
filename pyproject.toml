@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "handrail"
+version = "0.3.0"
+description = "Evidence-based guardrails for AI coding agents: scan risky agent setups, stop dangerous tool calls live, catch unverified 'tests pass' claims."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Yeswanth Varma Kanumuri" }]
+keywords = ["ai-agents", "claude-code", "mcp", "security", "guardrails", "ci", "prompt-injection", "sarif"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+  "Programming Language :: Python :: 3",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://handrail.oneenergytogether.com"
+Source = "https://github.com/kanumuri9593/handrail"
+
+[project.scripts]
+handrail = "handrail.cli:main"
+
+[tool.setuptools]
+packages = ["handrail", "handrail._scanner", "handrail._monitor", "handrail._hooks"]
+
+[tool.setuptools.package-dir]
+"handrail._scanner" = "scanner"
+"handrail._monitor" = "monitor"
+"handrail._hooks" = "hooks"
