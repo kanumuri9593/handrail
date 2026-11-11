@@ -37,3 +37,19 @@ class CloudDestructive(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CiGuard(unittest.TestCase):
+    BASE = "on:\n  pull_request_target:\njobs:\n  r:\n    {guard}\n    steps:\n      - uses: anthropics/claude-code-action@v1\n"
+
+    def sev(self, guard):
+        fs = [f for f in agentscan.scan_workflow(".github/workflows/r.yml", self.BASE.format(guard=guard))
+              if f.rule == "ci-agent-untrusted-trigger"]
+        return fs[0].severity
+
+    def test_unguarded_is_high(self):
+        self.assertEqual(self.sev("runs-on: ubuntu-latest"), "high")
+
+    def test_guarded_is_medium(self):
+        self.assertEqual(self.sev("if: github.event.pull_request.author_association == 'MEMBER'"), "medium")
+        self.assertEqual(self.sev("if: github.event.pull_request.head.repo.full_name == github.repository"), "medium")
