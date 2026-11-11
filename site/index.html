@@ -225,6 +225,7 @@ footer a{text-decoration:none;color:var(--fg)}
         <div class="tabs" role="tablist">
           <button role="tab" aria-selected="true" data-cmd="npx handrail-ai scan .">npx</button>
           <button role="tab" aria-selected="false" data-cmd="pipx run handrail scan .">pipx</button>
+          <button role="tab" aria-selected="false" data-cmd="npx handrail-ai scan . --deep">deep + history</button>
           <button role="tab" aria-selected="false" data-cmd="handrail scan --home">your laptop</button>
           <button role="tab" aria-selected="false" data-cmd="handrail init claude --write">Claude Code</button>
         </div>
@@ -355,6 +356,7 @@ footer a{text-decoration:none;color:var(--fg)}
           <li>Keys committed in MCP configs</li>
           <li>Agents in CI with approvals off, or on <code>pull_request_target</code></li>
           <li>Trojan-Source and invisible Unicode tag text</li>
+          <li><code>--deep</code>: keys “deleted” but still in git history, committed <code>.env</code>, hardcoded passwords, TLS checks off, agent chat logs</li>
         </ul>
       </article>
       <article class="tool">

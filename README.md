@@ -4,6 +4,7 @@
 
 ```bash
 npx handrail-ai scan .            # or: pipx run handrail scan .
+handrail scan . --deep            # every file + git history: deleted-but-not-gone keys, .env, chat logs, TLS off
 handrail scan --home              # your own machine: ~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code
 handrail init claude --write      # live guard + stop check in Claude Code
 ```
@@ -44,6 +45,7 @@ npm i -g handrail-ai        # or: pipx install handrail   (both give the `handra
 handrail scan path/to/repo
 handrail scan . --fail-on high                # CI gate: exit 1 on a high-severity finding
 handrail scan . --format sarif -o out.sarif   # code scanning (GitHub, Azure DevOps)
+handrail scan . --deep                        # whole repo + git history (secrets, .env, hardcoded passwords, TLS off, agent chat logs)
 handrail scan --home                          # your own laptop
 handrail rules                                # every rule, with severity
 
