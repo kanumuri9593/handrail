@@ -1,0 +1,106 @@
+<title>Handrail for Teams</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f5f3ee;--card:#fffdf8;--fg:#16181d;--muted:#5b5f68;--line:#d9d4c8;--accent:#c98a00;--accent-soft:#f6e7bf;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0e1013;--card:#171a1f;--fg:#eceae4;--muted:#9a9ea7;--line:#2a2e35;--accent:#f0b429;--accent-soft:#3a2e10;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1013;--card:#171a1f;--fg:#eceae4;--muted:#9a9ea7;--line:#2a2e35;--accent:#f0b429;--accent-soft:#3a2e10;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15.5px/1.6 var(--sans)}
+.page{max-width:860px;margin:0 auto;padding-block:48px 64px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1,h2{font-family:var(--display);letter-spacing:-.02em;text-wrap:balance;margin:0}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:4px solid var(--fg);padding-bottom:14px}
+.brand{font:800 20px/1 var(--display);display:flex;gap:10px;align-items:center}
+h1{font-size:clamp(30px,4.6vw,44px);line-height:1.08;margin-top:28px;font-weight:800}
+.lede{font-size:18px;color:var(--muted);margin:14px 0 0;max-width:40em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px 36px;margin-top:36px}
+.grid>*{min-width:0}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+h2{font-size:19px;font-weight:700;margin-bottom:8px}
+p{margin:0}
+ul{margin:0;padding-left:18px}
+li{margin:4px 0}
+code{font:13px var(--mono);background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:32px}
+.nums div{background:var(--card);padding:16px;min-width:0}
+.nums b{display:block;font:800 28px/1 var(--display);letter-spacing:-.02em}
+.nums span{font-size:13px;color:var(--muted);display:block;margin-top:6px}
+@media (max-width:700px){.nums{grid-template-columns:1fr 1fr}}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:8px;margin:8px 0}
+.steps li::before{content:counter(s);font:700 13px/24px var(--mono);width:24px;height:24px;text-align:center;border-radius:50%;background:var(--fg);color:var(--bg)}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:14px;color:var(--muted)}
+</style>
+
+<div class="page">
+  <div class="top">
+    <div class="brand"><svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><path d="M2 6 H24" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><path d="M5 7.5 V20 M13 7.5 V20 M21 7.5 V20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>Handrail</div>
+    <div class="eyebrow">For engineering &amp; security leads</div>
+  </div>
+
+  <h1>Your developers gave AI agents shell access. Who reviewed the config?</h1>
+  <p class="lede">Coding agents read files like <code>.claude/settings.json</code>, <code>.vscode/mcp.json</code> and <code>AGENTS.md</code>, then act on them. Those files can switch off approvals, auto-trust tool servers and hold live keys. Today they pass code review because nobody treats them as security-sensitive. Handrail does.</p>
+
+  <div class="nums">
+    <div><b>1 in 5</b><span>active public repos now instruct a coding agent</span></div>
+    <div><b>36%</b><span>of repos with 10k+ stars do</span></div>
+    <div><b>~⅔</b><span>of agent settings files trip a risk rule</span></div>
+    <div><b>0</b><span>confirmed prompt-injection attacks. The risk is config.</span></div>
+  </div>
+
+  <div class="grid">
+    <section>
+      <h2>The problem</h2>
+      <ul>
+        <li>One line, <code>defaultMode: bypassPermissions</code>, removes the human from every agent action in that repo.</li>
+        <li>MCP configs auto-approve tools and carry tokens in plain text. We found real cloud and GitHub credentials in public ones.</li>
+        <li>Agents in CI run with approvals off, sometimes on untrusted pull requests that can reach repo secrets.</li>
+        <li>Agents report “all tests pass” after skipping them, and reviewers believe it.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>What Handrail does</h2>
+      <ul>
+        <li><b>Before:</b> scans repos and laptops for risky agent setups, and gates PRs in CI.</li>
+        <li><b>During:</b> a live hook blocks remote-code runs, exfiltration and self-granted bypass mode, and asks before pushes and deploys.</li>
+        <li><b>After:</b> audits session transcripts and flags claims with no evidence behind them.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Why security teams can approve it</h2>
+      <ul>
+        <li>Runs fully offline. No SaaS, no telemetry, no API key.</li>
+        <li>Secrets are redacted in every output.</li>
+        <li>Open source (MIT), Python standard library only, easy to audit.</li>
+        <li>Low noise: the core config rules scored 83–100% precision on hand-checked real repos. Rules that misfired are opt-in.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Fits the tools you already run</h2>
+      <ul>
+        <li>GitHub Actions, Azure DevOps, GitLab, Jenkins, pre-commit.</li>
+        <li>SARIF for code-scanning dashboards, JSON for your SIEM, exit codes for gates.</li>
+        <li>Covers Claude Code, Cursor, Copilot, Codex, Gemini, Windsurf and MCP.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>A two-week pilot</h2>
+      <ol class="steps">
+        <li><span>Run <code>handrail scan</code> across your org’s repos and a few laptops. Get a findings report in a day.</span></li>
+        <li><span>Turn on the CI gate in report-only mode on 3–5 teams.</span></li>
+        <li><span>Switch to <code>--fail-on high</code> and roll out the Claude Code guard.</span></li>
+      </ol>
+    </section>
+    <section>
+      <h2>The evidence behind it</h2>
+      <p>A study of 1,200 randomly sampled active repos and 9,499 agent files, with precision and recall checked by hand. Plus a controlled test of whether Claude models follow instructions hidden in a repo: 0 of 54 did, and every finished run warned the user.</p>
+    </section>
+  </div>
+
+  <div class="foot">
+    <span>Built by Yeswanth Varma Kanumuri · One Energy Together</span>
+    <span>github.com/kanumuri9593/handrail</span>
+  </div>
+</div>
