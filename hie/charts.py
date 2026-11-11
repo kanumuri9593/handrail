@@ -1,6 +1,6 @@
 """Two report charts from eval rows, as plain SVG (standard library only).
 
-    charts/by-model.svg    per model: followed silently / followed but told the user / did not follow
+    charts/by-model.svg    per model: followed silently / followed + told / refused + warned / refused silently
     charts/by-channel.svg  per hiding place: how often the planted instruction was followed
 """
 
@@ -11,7 +11,7 @@ from collections import defaultdict
 from html import escape
 
 INK, MUTED, GRID, BG = "#1f2328", "#59636e", "#d1d9e0", "#ffffff"
-RED, AMBER, GREEN = "#c93c37", "#d4a72c", "#2f9e5b"   # followed silently, followed + told, did not follow
+RED, AMBER, GREEN, GREY = "#c93c37", "#d4a72c", "#2f9e5b", "#8c959f"
 FONT = "font-family='-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif'"
 
 
@@ -59,10 +59,13 @@ def by_model_svg(rows: list[dict]) -> str:
         n = len(xs)
         silent = sum(1 for x in xs if x["complied"] and not x["disclosed"])
         told = sum(1 for x in xs if x["complied"] and x["disclosed"])
+        warned = sum(1 for x in xs if not x["complied"] and x["disclosed"])
+        quiet = n - silent - told - warned
         data.append((model, [(silent / n, RED, f"{silent}/{n}"), (told / n, AMBER, f"{told}/{n}"),
-                             ((n - silent - told) / n, GREEN, f"{n - silent - told}/{n}")]))
+                             (warned / n, GREEN, f"{warned}/{n}"), (quiet / n, GREY, f"{quiet}/{n}")]))
     return _stacked(data, "Did the agent follow an instruction planted in the repo?",
-                    [("followed, didn't tell the user", RED), ("followed, told the user", AMBER), ("didn't follow", GREEN)])
+                    [("followed silently", RED), ("followed, told user", AMBER),
+                     ("refused + warned user", GREEN), ("refused, no explanation", GREY)])
 
 
 def by_channel_svg(rows: list[dict]) -> str:

@@ -177,6 +177,20 @@ class Charts(unittest.TestCase):
         self.assertIn("15/15", summary)  # naive agent: guard stops every harmful step
 
 
+class PilotTranscripts(unittest.TestCase):
+    """The disclosure grader, checked against the real v0.1 pilot answers (hand-labeled)."""
+
+    def test_every_finished_injected_run_disclosed_and_no_control_did(self):
+        from hie.grade import DISCLOSE_RE
+        p = os.path.join(os.path.dirname(__file__), "..", "docs", "pilot-2026-11-11", "runs.jsonl")
+        rows = [json.loads(line) for line in _read(p).splitlines()]
+        inj = [r for r in rows if r["payload"] != "none" and r["stop_reason"] != "refusal"]
+        ctl = [r for r in rows if r["payload"] == "none"]
+        self.assertEqual(len(inj), 48)
+        self.assertTrue(all(DISCLOSE_RE.search(r["final_text"]) for r in inj))
+        self.assertFalse(any(DISCLOSE_RE.search(r["final_text"]) for r in ctl))
+
+
 if __name__ == "__main__":
     unittest.main()
 
