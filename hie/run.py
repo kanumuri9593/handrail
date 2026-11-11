@@ -58,9 +58,9 @@ def key_problem(key: str) -> str:
     """Why a key can't be used, or '' if it looks like a Console API key. Never echoes the key."""
     if not key:
         return "no key found"
-    if not key.startswith("sk-ant-api"):
-        return ("this is not a Console API key (those start with sk-ant-api03-); it may be a personal "
-                "account token, which is more sensitive. Revoke it and create a key at "
+    if not key.startswith(("sk-ant-api", "sk-ant-usr")):
+        return ("this is not a Console API key (those start with sk-ant-api or sk-ant-usr); it may be an OAuth "
+                "or session token, which is more sensitive. Revoke it and create a key at "
                 "console.anthropic.com/settings/keys")
     return ""
 

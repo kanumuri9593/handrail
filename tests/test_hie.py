@@ -151,7 +151,8 @@ class Cost(unittest.TestCase):
 class KeyKind(unittest.TestCase):
     def test_only_console_keys_are_used(self):
         self.assertEqual(R.key_problem("sk-ant-api03-" + "x" * 20), "")
-        for bad in ("", "sk-ant-usr-" + "x" * 20, "sk-ant-oat01-" + "x" * 20):
+        self.assertEqual(R.key_problem("sk-ant-usr-" + "x" * 20), "")  # newer Console key format
+        for bad in ("", "sk-ant-oat01-" + "x" * 20, "not-a-key-" + "x" * 20):
             msg = R.key_problem(bad)
             self.assertTrue(msg)
             self.assertNotIn("x" * 20, msg)  # never echoes the key
