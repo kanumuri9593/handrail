@@ -163,7 +163,7 @@ RULES: dict[str, Rule] = {r.id: r for r in [
     # execution (prose + config)
     Rule("pipe-to-shell", "execution", "medium", "Downloads a script and pipes it into a shell"),
     Rule("encoded-exec", "execution", "medium", "Decodes an encoded payload and executes it"),
-    Rule("destructive-command", "execution", "medium", "Instructs a destructive command (rm -rf /, force push to main, DROP DATABASE)"),
+    Rule("destructive-command", "execution", "medium", "Instructs a destructive command (rm -rf /, force push to main, DROP DATABASE, cloud resource deletes)"),
     Rule("skip-safety-checks", "execution", "medium", "Tells the agent to bypass hooks, tests or verification (--no-verify, --dangerously-skip-permissions)"),
     Rule("env-dump", "execution", "medium", "Dumps the full environment (printenv / env / os.environ) to output or network"),
     # override
@@ -257,7 +257,7 @@ NEGATION_RE = re.compile(
 PROSE_RULES: list[tuple[str, re.Pattern]] = [
     ("pipe-to-shell", re.compile(r"\b(curl|wget|iwr|Invoke-WebRequest)\b[^\n|]*\|\s*(sudo\s+)?(ba|z|k|fi)?sh\b|\biex\s*\(\s*(iwr|irm|New-Object)", re.I)),
     ("encoded-exec", re.compile(r"base64\s+(-d|--decode|-D)\b[^\n]*\|\s*(ba|z)?sh\b|eval\s*\(\s*(atob|Buffer\.from)|exec\s*\(\s*base64\.b64decode|powershell[^\n]*-enc(odedcommand)?\s+[A-Za-z0-9+/=]{20,}", re.I)),
-    ("destructive-command", re.compile(r"\brm\s+-(rf|fr|r\s+-f)\s+(/|~|\$HOME|\*)(\s|$)|git\s+push\s+(-f|--force)\b[^\n]*\b(main|master)\b|\bDROP\s+(DATABASE|SCHEMA)\b|mkfs\.|dd\s+if=[^\n]*of=/dev/(sd|disk|nvme)", re.I)),
+    ("destructive-command", re.compile(r"\brm\s+-(rf|fr|r\s+-f)\s+(/|~|\$HOME|\*)(\s|$)|git\s+push\s+(-f|--force)\b[^\n]*\b(main|master)\b|\bDROP\s+(DATABASE|SCHEMA)\b|mkfs\.|dd\s+if=[^\n]*of=/dev/(sd|disk|nvme)|\baws\s+s3\s+(rm|rb)\b[^\n]*--(recursive|force)\b|\baws\s+ec2\s+terminate-instances\b|\baws\s+iam\s+delete-(user|role)\b|\bterraform\s+destroy\b[^\n]*-auto-approve|\bkubectl\s+delete\s+(ns|namespace|all)\b|\bgcloud\s+projects\s+delete\b", re.I)),
     ("skip-safety-checks", re.compile(r"--no-verify\b|--dangerously-skip-permissions\b|--yolo\b|--dangerously-bypass-approvals|HUSKY=0|SKIP=\S*\s+git commit", re.I)),
     ("env-dump", re.compile(r"(^|[;&|`(:]\s*|\$\s+)(printenv|env)\s*(\|\s*(curl|nc|wget|tee|base64)|>\s*[\w./~-]+)|JSON\.stringify\(\s*process\.env\s*\)|dict\(\s*os\.environ\s*\)|\bprintenv\s*$", re.I | re.M)),
     ("prompt-override", re.compile(r"\b(ignore|disregard|forget|override)\b[^\n.]{0,40}\b(previous|prior|above|earlier|all|system|your)\b[^\n.]{0,30}\b(instructions?|prompts?|rules?|guidelines?)\b|\bnew system prompt\b|\byou are now (?:in )?(DAN|developer mode|jailbroken)", re.I)),
