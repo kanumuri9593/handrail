@@ -1,0 +1,438 @@
+<title>Handrail</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Evidence-based guardrails for AI coding agents. Scan agent configs, guard tool calls live, and catch unverified claims. Measured on 1,200 public repos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f5f3ee; --bg2:#ecE9e1; --card:#fffdf8; --fg:#16181d; --muted:#5b5f68; --line:#d9d4c8;
+  --accent:#c98a00; --accent-ink:#1a1405; --accent-soft:#f6e7bf;
+  --term:#111317; --term-fg:#d7dae0; --term-dim:#7d828c;
+  --high:#d9473f; --med:#d99a14; --low:#7f8896; --ok:#2f9e5b;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1013; --bg2:#14171b; --card:#171a1f; --fg:#eceae4; --muted:#9a9ea7; --line:#2a2e35;
+  --accent:#f0b429; --accent-ink:#1a1405; --accent-soft:#3a2e10;
+  --term:#08090b; --term-fg:#d7dae0; --term-dim:#7d828c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1013; --bg2:#14171b; --card:#171a1f; --fg:#eceae4; --muted:#9a9ea7; --line:#2a2e35;
+  --accent:#f0b429; --accent-ink:#1a1405; --accent-soft:#3a2e10;
+  --term:#08090b; --term-fg:#d7dae0; --term-dim:#7d828c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em;text-wrap:balance;margin:0}
+code,pre,.mono{font-family:var(--mono)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* nav */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:24px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font:800 19px/1 var(--display);text-decoration:none;letter-spacing:-.02em}
+.brand svg{flex:none}
+nav .links{display:flex;gap:22px;margin-left:auto;font-size:14px}
+nav .links a{text-decoration:none;color:var(--muted)}
+nav .links a:hover{color:var(--fg)}
+.gh{font:500 13px var(--mono);padding:7px 12px;border:1px solid var(--line);border-radius:8px;text-decoration:none}
+@media (max-width:760px){nav .links{display:none} .gh{margin-left:auto}}
+
+/* hero */
+.hero{padding-block:72px 40px}
+.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
+.hero-grid>*{min-width:0}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr;gap:36px}.hero{padding-block:44px 24px}}
+.hero h1{font-size:clamp(40px,6vw,68px);line-height:1.02;font-weight:800}
+.hero h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--accent-soft) 62%);padding:0 .06em}
+.lede{font-size:clamp(17px,1.6vw,19px);color:var(--muted);max-width:34em;margin:22px 0 28px}
+.install{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:520px}
+.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:500 13px var(--mono);background:none;border:0;color:var(--muted);padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.cmd{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:14.5px}
+.cmd code::before{content:"$ ";color:var(--muted)}
+.copy{font:500 12px var(--mono);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:7px;padding:6px 10px;cursor:pointer}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:13.5px;color:var(--muted)}
+.facts span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:middle}
+
+.term{background:var(--term);color:var(--term-fg);border-radius:14px;box-shadow:0 30px 60px -30px rgba(0,0,0,.45);overflow:hidden;border:1px solid #23262c}
+.term-bar{display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid #23262c}
+.term-bar i{width:10px;height:10px;border-radius:50%;background:#3a3d44}
+.term-bar b{font:500 12px var(--mono);color:var(--term-dim);margin-left:8px}
+.term pre{margin:0;padding:16px 18px 18px;font-size:12.5px;line-height:1.7;overflow-x:auto}
+.t-d{color:var(--term-dim)} .t-h{color:#ff6b62;font-weight:500} .t-m{color:#f0b429;font-weight:500} .t-l{color:#9aa3b2} .t-p{color:#8fd19e} .t-s{color:#e6e8ec}
+
+/* rail motif */
+.rail{position:relative;height:28px;margin-block:8px}
+.rail::before{content:"";position:absolute;left:0;right:0;top:12px;height:4px;border-radius:4px;background:var(--fg);opacity:.9}
+.rail::after{content:"";position:absolute;left:0;right:0;top:16px;height:12px;background:repeating-linear-gradient(90deg,var(--fg) 0 2px,transparent 2px 120px);opacity:.25}
+
+section{padding-block:72px}
+.sec-head{display:grid;grid-template-columns:200px 1fr;gap:32px;margin-bottom:40px}
+.sec-head>*{min-width:0}
+.sec-head h2{font-size:clamp(30px,4vw,44px);line-height:1.08;font-weight:700}
+.sec-head p{color:var(--muted);max-width:40em;margin:14px 0 0;font-size:17px}
+@media (max-width:760px){.sec-head{grid-template-columns:1fr;gap:12px}}
+
+/* three tools */
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.tool .when{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.tool h3{font-size:24px;font-weight:700}
+.tool p{margin:0;color:var(--muted);font-size:15px}
+.tool code.inline{font-size:13px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:3px 7px;align-self:flex-start;max-width:100%;overflow-x:auto;white-space:nowrap}
+.tool ul{margin:4px 0 0;padding-left:18px;font-size:14.5px;color:var(--fg)}
+.tool li{margin:3px 0}
+@media (max-width:900px){.tools{grid-template-columns:1fr}}
+
+/* evidence */
+.evidence{background:var(--bg2);border-block:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stat{background:var(--card);padding:24px 22px;min-width:0}
+.stat .n{font:800 clamp(34px,4vw,46px)/1 var(--display);letter-spacing:-.03em}
+.stat .l{margin-top:10px;font-size:14px;color:var(--muted)}
+@media (max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
+.two{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;margin-top:28px}
+.two>*{min-width:0}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
+.panel h3{font-size:20px;font-weight:700;margin-bottom:4px}
+.panel .sub{font-size:14px;color:var(--muted);margin:0 0 16px}
+.ledger{width:100%;border-collapse:collapse;font-size:13.5px}
+.ledger th{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 0;border-bottom:1px solid var(--line)}
+.ledger td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.ledger td:first-child{font-family:var(--mono);font-size:12.5px;padding-right:10px}
+.bar{display:flex;align-items:center;gap:10px}
+.bar span{display:block;height:8px;border-radius:4px;background:var(--fg);min-width:2px}
+.bar.weak span{background:var(--low)}
+.bar b{font:500 12.5px var(--mono);min-width:5ch}
+.tag{font:500 11px var(--mono);padding:3px 7px;border-radius:5px;white-space:nowrap}
+.tag.on{background:var(--accent-soft);color:var(--fg)}
+.tag.off{border:1px solid var(--line);color:var(--muted)}
+.scroll{overflow-x:auto}
+.pilot{display:flex;flex-direction:column;gap:16px}
+.pilot-row{display:grid;grid-template-columns:5.2em 1fr;gap:14px;align-items:baseline}
+.pilot-row .n{font:800 30px/1 var(--display);letter-spacing:-.02em}
+.pilot-row p{margin:0;font-size:14.5px}
+.pilot-row p small{display:block;color:var(--muted);font-size:13.5px;margin-top:2px}
+.note{font-size:13px;color:var(--muted);margin-top:18px;border-top:1px dashed var(--line);padding-top:14px}
+.readmore{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:8px;font:600 14.5px var(--sans);padding:11px 18px;border-radius:10px;text-decoration:none;border:1px solid var(--line);background:var(--card)}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+/* integrations */
+.int-grid{display:grid;grid-template-columns:260px 1fr;gap:24px}
+.int-grid>*{min-width:0}
+@media (max-width:860px){.int-grid{grid-template-columns:1fr}}
+.int-list{display:flex;flex-direction:column;gap:6px}
+.int-list button{display:flex;justify-content:space-between;align-items:center;text-align:left;font:500 15px var(--sans);color:var(--fg);background:transparent;border:1px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer}
+.int-list button small{font:400 12px var(--mono);color:var(--muted)}
+.int-list button[aria-selected="true"]{background:var(--card);border-color:var(--line)}
+@media (max-width:860px){.int-list{flex-direction:row;overflow-x:auto}.int-list button{white-space:nowrap}.int-list button small{display:none}}
+.code{background:var(--term);color:var(--term-fg);border-radius:14px;border:1px solid #23262c;overflow:hidden}
+.code .head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #23262c;font:500 12px var(--mono);color:var(--term-dim)}
+.code .head .copy{background:#1b1e23;color:var(--term-fg);border-color:#2c3036}
+.code pre{margin:0;padding:18px;font-size:13px;line-height:1.65;overflow-x:auto}
+.agents{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.agents span{font:500 13px var(--mono);border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--card)}
+
+/* enterprise */
+.ent{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.ent div{border-top:3px solid var(--fg);padding-top:16px;min-width:0}
+.ent h3{font-size:18px;font-weight:700;margin-bottom:6px}
+.ent p{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:860px){.ent{grid-template-columns:1fr}}
+.cta{margin-top:48px;background:var(--fg);color:var(--bg);border-radius:20px;padding:clamp(28px,5vw,48px);display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.cta>*{min-width:0}
+.cta h2{font-size:clamp(26px,3.4vw,36px);font-weight:700}
+.cta p{margin:10px 0 0;opacity:.75;max-width:38em}
+.cta .btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+@media (max-width:760px){.cta{grid-template-columns:1fr}}
+
+footer{border-top:1px solid var(--line);padding-block:36px 48px;font-size:14px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+footer a{text-decoration:none;color:var(--fg)}
+</style>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Handrail home">
+      <svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><path d="M2 6 H24" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><path d="M5 7.5 V20 M13 7.5 V20 M21 7.5 V20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>
+      Handrail
+    </a>
+    <div class="links">
+      <a href="#tools">How it works</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#ci">CI/CD</a>
+      <a href="#teams">For teams</a>
+    </div>
+    <a class="gh" href="https://github.com/kanumuri9593/handrail">GitHub ↗</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Open source · MIT · v0.3.0</div>
+      <h1 style="margin-top:16px">Guardrails for AI coding agents, <em>built on evidence.</em></h1>
+      <p class="lede">Handrail finds risky agent setups before they ship, blocks dangerous tool calls while an agent works, and catches an agent that says “all tests pass” when it never ran them. Every rule was measured on 1,200 public repos first.</p>
+      <div class="install" role="region" aria-label="Install">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-cmd="npx handrail-ai scan .">npx</button>
+          <button role="tab" aria-selected="false" data-cmd="pipx run handrail scan .">pipx</button>
+          <button role="tab" aria-selected="false" data-cmd="handrail scan --home">your laptop</button>
+          <button role="tab" aria-selected="false" data-cmd="handrail init claude --write">Claude Code</button>
+        </div>
+        <div class="cmd"><code id="cmd">npx handrail-ai scan .</code><button class="copy" data-copy="#cmd">Copy</button></div>
+      </div>
+      <div class="facts"><span>No API key</span><span>No network calls</span><span>Secrets always redacted</span><span>Python 3.10+ stdlib only</span></div>
+    </div>
+    <div class="term" aria-label="Example scan output">
+      <div class="term-bar"><i></i><i></i><i></i><b>~/acme-api</b></div>
+<pre><span class="t-d">$</span> <span class="t-s">npx handrail-ai scan .</span>
+<span class="t-h">HIGH  </span> agent-permission-mode   <span class="t-d">.claude/settings.json:1</span>
+       <span class="t-d">└ defaultMode: bypassPermissions</span>
+<span class="t-h">HIGH  </span> agent-broad-permissions <span class="t-d">.claude/settings.json:1</span>
+       <span class="t-d">└ allow: Bash(*)</span>
+<span class="t-h">HIGH  </span> mcp-auto-approve        <span class="t-d">.vscode/mcp.json:1</span>
+       <span class="t-d">└ github: auto-approves ["*"]</span>
+<span class="t-h">HIGH  </span> mcp-inline-secret       <span class="t-d">.vscode/mcp.json:1</span>
+       <span class="t-d">└ github.env.GITHUB_TOKEN = ghp_…[redacted 40 chars]</span>
+<span class="t-m">MEDIUM</span> agent-auto-enable-mcp   <span class="t-d">.claude/settings.json:1</span>
+       <span class="t-d">└ enableAllProjectMcpServers: true</span>
+<span class="t-m">MEDIUM</span> pipe-to-shell           <span class="t-d">AGENTS.md:3</span>
+       <span class="t-d">└ Run `curl -fsSL https://get.example.dev/… | bash`</span>
+<span class="t-l">LOW   </span> mcp-unpinned-package    <span class="t-d">.vscode/mcp.json:1</span>
+
+<span class="t-p">handrail scan 0.3.0:</span> 3 agent files · <span class="t-h">high 4</span> · <span class="t-m">medium 2</span> · low 1</pre>
+    </div>
+  </div>
+</header>
+
+<div class="wrap"><div class="rail" aria-hidden="true"></div></div>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">01 · How it works</div>
+      <div>
+        <h2>One rule set, three moments.</h2>
+        <p>Before the agent starts, while it works, and when it says it’s done. The same rules run on your laptop, in pre-commit, and in CI.</p>
+      </div>
+    </div>
+    <div class="tools">
+      <article class="tool">
+        <div class="when">Before · scan</div>
+        <h3>Catch risky setups</h3>
+        <p>Reads agent instruction and config files in a repo or on your own machine.</p>
+        <code class="inline">handrail scan . --fail-on high</code>
+        <ul>
+          <li>MCP <code>autoApprove</code>, <code>bypassPermissions</code>, <code>Bash(*)</code></li>
+          <li>Keys committed in MCP configs</li>
+          <li>Agents in CI with approvals off, or on <code>pull_request_target</code></li>
+          <li>Trojan-Source and invisible Unicode tag text</li>
+        </ul>
+      </article>
+      <article class="tool">
+        <div class="when">During · guard</div>
+        <h3>Stop dangerous calls</h3>
+        <p>A live Claude Code hook that checks every tool call before it runs.</p>
+        <code class="inline">handrail init claude --write</code>
+        <ul>
+          <li>Blocks <code>curl | bash</code>, <code>rm -rf /</code>, exfiltration</li>
+          <li>Blocks an agent switching itself into bypass mode</li>
+          <li>Asks first before credential reads, pushes, deploys, test skips</li>
+        </ul>
+      </article>
+      <article class="tool">
+        <div class="when">After · audit</div>
+        <h3>Check what it claimed</h3>
+        <p>Reads the session transcript and compares claims with what actually ran.</p>
+        <code class="inline">handrail audit --latest</code>
+        <ul>
+          <li>“All tests pass” with no passing run behind it</li>
+          <li>Success claimed right after a failure</li>
+          <li>Tests skipped without saying so; guardrail tampering</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="evidence" class="evidence">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">02 · Evidence</div>
+      <div>
+        <h2>We measured first. Then we wrote the rules.</h2>
+        <p>Most agent-security tools ship whatever sounds scary. Handrail started as a study of what real repos actually contain, with every finding checked by hand.</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">1,200</div><div class="l">active public repos, sampled at random across star counts</div></div>
+      <div class="stat"><div class="n">9,499</div><div class="l">unique agent instruction and config files scanned</div></div>
+      <div class="stat"><div class="n">1 in 5</div><div class="l">repos now instruct a coding agent (36% of 10k+ star repos)</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">confirmed agent-hijacking injections. The risk was in configs and keys.</div></div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>Rules that earned their place</h3>
+        <p class="sub">Hand-labeled precision on the study sample. Rules that cried wolf are opt-in, never high.</p>
+        <div class="scroll">
+        <table class="ledger">
+          <thead><tr><th>Rule</th><th>Precision</th><th>Ships as</th></tr></thead>
+          <tbody>
+            <tr><td>mcp-auto-approve</td><td><div class="bar"><span style="width:90px"></span><b>12/12</b></div></td><td><span class="tag on">on · high</span></td></tr>
+            <tr><td>agent-broad-permissions</td><td><div class="bar"><span style="width:90px"></span><b>12/12</b></div></td><td><span class="tag on">on · high</span></td></tr>
+            <tr><td>agent-auto-enable-mcp</td><td><div class="bar"><span style="width:90px"></span><b>12/12</b></div></td><td><span class="tag on">on · medium</span></td></tr>
+            <tr><td>mcp-inline-secret</td><td><div class="bar"><span style="width:75px"></span><b>10/12</b></div></td><td><span class="tag on">on · high</span></td></tr>
+            <tr><td>html-comment-directive</td><td><div class="bar weak"><span style="width:2px"></span><b>0/12</b></div></td><td><span class="tag off">opt-in</span></td></tr>
+            <tr><td>zero-width-chars</td><td><div class="bar weak"><span style="width:2px"></span><b>0/12</b></div></td><td><span class="tag off">opt-in</span></td></tr>
+            <tr><td>base64-text-blob</td><td><div class="bar weak"><span style="width:2px"></span><b>0/12</b></div></td><td><span class="tag off">opt-in</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note">Corpus-weighted precision on medium+ findings: 77.9%. Recall: 0 missed risks in a random sample of 133 unflagged files.</p>
+      </div>
+      <div class="panel">
+        <h3>Do agents follow planted instructions?</h3>
+        <p class="sub">Pilot, Nov 11 2026: 18 hidden instructions × Claude Opus, Sonnet and Haiku 5.5.</p>
+        <div class="pilot">
+          <div class="pilot-row"><div class="n">0/54</div><p>followed a planted instruction<small>README, HTML comment, code comment, AGENTS.md, invisible Unicode, fetched web page</small></p></div>
+          <div class="pilot-row"><div class="n">48/48</div><p>finished runs told the user<small>named the file, quoted the request, said it didn’t comply</small></p></div>
+          <div class="pilot-row"><div class="n">6/18</div><p>Opus runs stopped with no explanation<small>safe, but the bug stayed unfixed and the user couldn’t tell why</small></p></div>
+        </div>
+        <p class="note">One repeat per cell on one toy repo: a pilot, not a rate. The takeaway matches the study: blunt injection isn’t where the risk is. Configs are.</p>
+      </div>
+    </div>
+    <div class="readmore">
+      <a class="btn primary" href="https://github.com/kanumuri9593/handrail/blob/main/docs/REPORT-v0.1.md">Read the study ↗</a>
+      <a class="btn" href="https://github.com/kanumuri9593/handrail/blob/main/docs/PILOT-hie-v0.1.md">Read the pilot ↗</a>
+    </div>
+  </div>
+</section>
+
+<section id="ci">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">03 · CI/CD</div>
+      <div>
+        <h2>Gate every pull request, on any platform.</h2>
+        <p>Fail the build on a high-severity finding and send SARIF to your code-scanning view. Three lines on most platforms.</p>
+      </div>
+    </div>
+    <div class="int-grid">
+      <div class="int-list" role="tablist">
+        <button role="tab" aria-selected="true" data-int="gha">GitHub Actions <small>SARIF</small></button>
+        <button role="tab" aria-selected="false" data-int="ado">Azure DevOps <small>SARIF</small></button>
+        <button role="tab" aria-selected="false" data-int="gitlab">GitLab CI</button>
+        <button role="tab" aria-selected="false" data-int="precommit">pre-commit</button>
+        <button role="tab" aria-selected="false" data-int="any">Jenkins, anything</button>
+      </div>
+      <div class="code">
+        <div class="head"><span id="int-file">.github/workflows/handrail.yml</span><button class="copy" data-copy="#int-code">Copy</button></div>
+        <pre id="int-code"></pre>
+      </div>
+    </div>
+    <div class="agents" aria-label="Agents covered">
+      <span>Claude Code</span><span>Cursor</span><span>GitHub Copilot</span><span>Codex</span><span>Gemini CLI</span><span>Windsurf</span><span>MCP</span>
+    </div>
+  </div>
+</section>
+
+<section id="teams" style="padding-top:24px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">04 · For teams</div>
+      <div>
+        <h2>Safe to roll out across an engineering org.</h2>
+        <p>Developers are adding agent configs faster than security teams can review them. Handrail makes those files part of the normal review gate.</p>
+      </div>
+    </div>
+    <div class="ent">
+      <div><h3>Nothing leaves your network</h3><p>Runs entirely offline from the standard library. No telemetry, no API key, no SaaS account. Secret values are redacted in every output.</p></div>
+      <div><h3>Low noise by design</h3><p>Default rules are the ones that scored high on real repos. Noisy detectors stay opt-in, so a gate doesn’t train people to ignore it.</p></div>
+      <div><h3>Fits your existing tools</h3><p>SARIF for GitHub and Azure DevOps code scanning, JSON for your SIEM, exit codes for any pipeline, and an append-only audit log of agent tool calls.</p></div>
+    </div>
+    <div class="cta">
+      <div>
+        <h2>Scan your own setup in ten seconds.</h2>
+        <p>Run it on your laptop first. It checks ~/.claude, Claude Desktop, Cursor, Codex, Gemini and VS Code, and changes nothing.</p>
+      </div>
+      <a class="btn" href="https://github.com/kanumuri9593/handrail#quick-start">npx handrail-ai scan --home</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>Handrail is built and maintained by Yeswanth Varma Kanumuri at <a href="https://oneenergytogether.com">One Energy Together</a>. MIT licensed.</div>
+    <div style="display:flex;gap:20px"><a href="https://github.com/kanumuri9593/handrail">GitHub</a><a href="https://www.npmjs.com/package/handrail-ai">npm</a><a href="https://pypi.org/project/handrail/">PyPI</a></div>
+  </div>
+</footer>
+
+<script>
+const ints = {
+  gha:{file:".github/workflows/handrail.yml", code:`name: handrail
+on: [pull_request]
+permissions: { contents: read, security-events: write }
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kanumuri9593/handrail@v0.3.0
+        with:
+          fail-on: high          # block the PR on a high finding
+          sarif: handrail.sarif  # shows up in the Security tab`},
+  ado:{file:"azure-pipelines.yml", code:`steps:
+  - task: UsePythonVersion@0
+    inputs: { versionSpec: '3.12' }
+  - script: pip install handrail==0.3.0
+  - script: handrail scan . --format sarif -o $(Build.ArtifactStagingDirectory)/handrail.sarif
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: CodeAnalysisLogs   # Scans tab
+  - script: handrail scan . --fail-on high`},
+  gitlab:{file:".gitlab-ci.yml", code:`handrail:
+  image: python:3.12-slim
+  script:
+    - pip install handrail==0.3.0
+    - handrail scan . --fail-on high`},
+  precommit:{file:".pre-commit-config.yaml", code:`repos:
+  - repo: https://github.com/kanumuri9593/handrail
+    rev: v0.3.0
+    hooks:
+      - id: handrail`},
+  any:{file:"any shell step", code:`# Jenkins, Bitbucket, CircleCI, Buildkite, a Makefile...
+pipx run handrail scan . --fail-on high
+
+# or with Node already on the agent
+npx handrail-ai scan . --fail-on high --format json -o handrail.json`}
+};
+const show = k => {
+  document.getElementById('int-file').textContent = ints[k].file;
+  document.getElementById('int-code').textContent = ints[k].code;
+  document.querySelectorAll('[data-int]').forEach(b => b.setAttribute('aria-selected', b.dataset.int === k));
+};
+document.querySelectorAll('[data-int]').forEach(b => b.addEventListener('click', () => show(b.dataset.int)));
+show('gha');
+
+document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => {
+  document.getElementById('cmd').textContent = b.dataset.cmd;
+  document.querySelectorAll('[data-cmd]').forEach(x => x.setAttribute('aria-selected', x === b));
+}));
+
+document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+  const el = document.querySelector(b.dataset.copy);
+  const done = () => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1400); };
+  const select = () => { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+  try { navigator.clipboard.writeText(el.textContent).then(done, select); } catch (e) { select(); }
+}));
+</script>
