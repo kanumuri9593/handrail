@@ -635,7 +635,9 @@ def format_text(res: ScanResult, min_sev: str, color: bool) -> str:
             lines.append(f"       └ {f.evidence}")
     counts = {s: sum(1 for f in res.findings if f.severity == s) for s in SEVERITIES}
     lines.append("")
-    lines.append(f"handrail scan {__version__}: {res.files_scanned} agent files scanned · "
+    what = "files" if getattr(res, "deep", False) else "agent files"
+    extra = f" + {res.commits_scanned} commits" if getattr(res, "commits_scanned", 0) else ""
+    lines.append(f"handrail scan {__version__}: {res.files_scanned} {what}{extra} scanned · "
                  f"high {counts['high']} · medium {counts['medium']} · low {counts['low']} · info {counts['info']}")
     return "\n".join(lines)
 
@@ -674,7 +676,12 @@ def main(argv: list[str] | None = None) -> int:
                     help="exit 1 if any finding is at or above this severity (for CI)")
     ap.add_argument("--include-noisy", action="store_true",
                     help="also run low-precision hidden-channel rules (zero-width, base64, html comments)")
-    ap.add_argument("--all-files", action="store_true", help="scan every file, not just known agent files")
+    ap.add_argument("--all-files", action="store_true",
+                    help="scan every text file (source, .md, configs, comments) for secrets and common mistakes")
+    ap.add_argument("--history", action="store_true",
+                    help="also scan git history for secrets that were deleted but are still in old commits")
+    ap.add_argument("--deep", action="store_true", help="same as --all-files --history")
+    ap.add_argument("--history-depth", type=int, default=5000, help="max commits to read with --history (default 5000)")
     ap.add_argument("--home", action="store_true",
                     help="also scan your user-level agent configs (~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code)")
     ap.add_argument("--list-rules", action="store_true")
@@ -689,12 +696,24 @@ def main(argv: list[str] | None = None) -> int:
 
     res = ScanResult()
     paths = a.paths if (a.paths != ["."] or not a.home) else []
-    runs = [scan_path(p, include_noisy=a.include_noisy, all_files=a.all_files) for p in paths]
+    if a.deep:
+        a.all_files = a.history = True
+    if a.all_files or a.history:
+        import deepscan
+    runs = [deepscan.scan_all_files(p, include_noisy=a.include_noisy) if a.all_files
+            else scan_path(p, include_noisy=a.include_noisy) for p in paths]
+    if a.history:
+        for p in paths:
+            h = deepscan.scan_history(p, a.history_depth, deepscan.current_secret_fps(p))
+            res.findings += h.findings
+            res.commits_scanned = getattr(res, "commits_scanned", 0) + h.files_scanned
     if a.home:
         runs.append(scan_home(include_noisy=a.include_noisy))
     for r in runs:
         res.files_scanned += r.files_scanned
         res.findings += r.findings
+    res.deep = bool(a.all_files)
+    res.findings.sort(key=lambda f: (-SEV_RANK[f.severity], f.path, f.line))
 
     if a.format == "json":
         body = json.dumps({"version": __version__, "files_scanned": res.files_scanned,
