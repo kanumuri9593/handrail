@@ -12,3 +12,9 @@ venv/
 .DS_Store
 *.sarif
 results-dry/
+build/
+*.egg-info/
+npm/py/
+npm/*.tgz
+npm/README.md
+npm/LICENSE

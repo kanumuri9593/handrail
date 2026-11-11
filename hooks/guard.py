@@ -40,29 +40,29 @@ def decide(payload: dict) -> tuple[str, str] | None:
         for rule_id, pat in agentscan.PROSE_RULES:
             if pat.search(cmd):
                 if rule_id in DENY_RULES:
-                    return "deny", f"agent-guardrails: {agentscan.RULES[rule_id].description}."
+                    return "deny", f"handrail: {agentscan.RULES[rule_id].description}."
                 if rule_id in ASK_RULES:
-                    return "ask", f"agent-guardrails: {agentscan.RULES[rule_id].description}."
+                    return "ask", f"handrail: {agentscan.RULES[rule_id].description}."
         read_cmd = tm.LISTING_ARGS.sub(" ", cmd)
         if tm.SECRET_PATH_RE.search(read_cmd) and not tm.SECRET_PATH_OK.search(read_cmd):
-            return "ask", "agent-guardrails: this command touches a credential file."
+            return "ask", "handrail: this command touches a credential file."
         if tm.OUTWARD_RE.search(cmd):
-            return "ask", "agent-guardrails: this leaves your machine (push / publish / deploy / POST)."
+            return "ask", "handrail: this leaves your machine (push / publish / deploy / POST)."
 
     path = tm._path(ev)
     if name in tm.READ_TOOLS and path and tm.SECRET_PATH_RE.search(path) and not tm.SECRET_PATH_OK.search(path):
-        return "ask", f"agent-guardrails: reading a credential file ({os.path.basename(path)})."
+        return "ask", f"handrail: reading a credential file ({os.path.basename(path)})."
 
     if name in tm.WRITE_TOOLS and path:
         new = tm._new_text(ev)
         if tm.GUARD_FILES.search(path):
             if path.endswith((".json",)) and "bypassPermissions" in new:
-                return "deny", "agent-guardrails: the agent tried to switch itself into bypassPermissions mode."
-            return "ask", "agent-guardrails: editing agent permissions, hooks or CI config."
+                return "deny", "handrail: the agent tried to switch itself into bypassPermissions mode."
+            return "ask", "handrail: editing agent permissions, hooks or CI config."
         if any(True for _ in agentscan.find_secrets(new)):
-            return "ask", "agent-guardrails: this write contains what looks like a live credential."
+            return "ask", "handrail: this write contains what looks like a live credential."
         if tm.TEST_FILE_RE.search(path) and tm.TEST_SKIP_RE.search(new) and not tm.TEST_SKIP_RE.search(tm._old_text(ev)):
-            return "ask", "agent-guardrails: this edit skips or neuters a test."
+            return "ask", "handrail: this edit skips or neuters a test."
     return None
 
 

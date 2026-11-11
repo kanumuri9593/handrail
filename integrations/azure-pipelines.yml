@@ -1,0 +1,29 @@
+# Handrail for Azure DevOps (Azure Repos or GitHub repos built in ADO).
+# Add to azure-pipelines.yml, or save as a template and `- template: handrail.yml`.
+# Fails the build on high-severity agent-config risks. The SARIF file is published as
+# the CodeAnalysisLogs artifact, which the free "SARIF SAST Scans Tab" extension shows
+# as a Scans tab on every build.
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+    displayName: Use Python 3.12
+
+  - script: python -m pip install --quiet handrail==0.3.0
+    displayName: Install Handrail
+
+  - script: |
+      handrail scan "$(Build.SourcesDirectory)" --format sarif --min-severity low \
+        -o "$(Build.ArtifactStagingDirectory)/CodeAnalysisLogs/handrail.sarif"
+    displayName: Handrail report (SARIF)
+    condition: always()
+
+  - script: handrail scan "$(Build.SourcesDirectory)" --min-severity low --fail-on high --no-color
+    displayName: Handrail gate (fails on high)
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/CodeAnalysisLogs
+      ArtifactName: CodeAnalysisLogs
+    displayName: Publish SARIF

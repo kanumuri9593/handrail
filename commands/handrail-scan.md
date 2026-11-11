@@ -2,7 +2,7 @@
 description: Scan this repo's agent instruction and MCP/config files for dangerous setups
 ---
 
-Run the agentscan scanner on the current project and summarize the results.
+Run the Handrail scanner on the current project and summarize the results.
 
 1. Run: `python3 "${CLAUDE_PLUGIN_ROOT}/scanner/agentscan.py" . --min-severity medium`
 2. For each high or medium finding, open the file at that line and confirm whether it is a real risk or a false positive. A pattern match is a hypothesis, not a finding.
