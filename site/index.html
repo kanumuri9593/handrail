@@ -97,6 +97,7 @@ section{padding-block:72px}
 .stat{background:var(--card);padding:24px 22px;min-width:0}
 .stat .n{font:800 clamp(34px,4vw,46px)/1 var(--display);letter-spacing:-.03em}
 .stat .l{margin-top:10px;font-size:14px;color:var(--muted)}
+.sub.v2{margin:28px 0 12px;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 @media (max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
 .two{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;margin-top:28px}
 .two>*{min-width:0}
@@ -223,24 +224,23 @@ footer a{text-decoration:none;color:var(--fg)}
       <p class="lede">Handrail finds risky agent setups before they ship, blocks dangerous tool calls while an agent works, and catches an agent that says “all tests pass” when it never ran them. Every rule was measured on 1,200 public repos first.</p>
       <div class="install" role="region" aria-label="Install">
         <div class="tabs" role="tablist">
-          <button role="tab" aria-selected="true" data-cmd="npx handrail-ai scan .">npx</button>
-          <button role="tab" aria-selected="false" data-cmd="pipx run handrail scan .">pipx</button>
-          <button role="tab" aria-selected="false" data-cmd="npx handrail-ai scan . --deep">deep + history</button>
+          <button role="tab" aria-selected="true" data-cmd="pipx install git+https://github.com/kanumuri9593/handrail &amp;&amp; handrail scan .">install + scan</button>
+          <button role="tab" aria-selected="false" data-cmd="handrail scan . --deep">deep + history</button>
           <button role="tab" aria-selected="false" data-cmd="handrail scan --home">your laptop</button>
           <button role="tab" aria-selected="false" data-cmd="handrail init claude --write">Claude Code</button>
         </div>
-        <div class="cmd"><code id="cmd">npx handrail-ai scan .</code><button class="copy" data-copy="#cmd">Copy</button></div>
+        <div class="cmd"><code id="cmd">pipx install git+https://github.com/kanumuri9593/handrail &amp;&amp; handrail scan .</code><button class="copy" data-copy="#cmd">Copy</button></div>
       </div>
       <div class="proof">
         <a href="#evidence"><b>1,200</b> repos studied</a>
         <a href="#evidence"><b>0/54</b> planted instructions followed</a>
-        <a href="#news"><b>6</b> real incidents mapped to rules</a>
+        <a href="#evidence"><b>8,750</b> CI agent workflows checked</a>
       </div>
       <div class="facts"><span>No API key</span><span>No network calls</span><span>Secrets always redacted</span><span>Python 3.10+ stdlib only</span></div>
     </div>
     <div class="term" aria-label="Example scan output">
       <div class="term-bar"><i></i><i></i><i></i><b>~/acme-api</b></div>
-<pre><span class="t-d">$</span> <span class="t-s">npx handrail-ai scan .</span>
+<pre><span class="t-d">$</span> <span class="t-s">handrail scan .</span>
 <span class="t-h">HIGH  </span> agent-permission-mode   <span class="t-d">.claude/settings.json:1</span>
        <span class="t-d">└ defaultMode: bypassPermissions</span>
 <span class="t-h">HIGH  </span> agent-broad-permissions <span class="t-d">.claude/settings.json:1</span>
@@ -328,9 +328,9 @@ footer a{text-decoration:none;color:var(--fg)}
       <article class="inc">
         <div class="date">Nov 2026 · Handrail study</div>
         <h3>Live keys and disabled approvals in public agent configs</h3>
-        <p>Our own study of 1,200 repos found real cloud and GitHub credentials in MCP configs, and settings that turn off human confirmation. We found zero confirmed injection attacks. No repo is named; owners are told privately first.</p>
-        <div class="catch"><b>Handrail check</b><code>mcp-inline-secret</code>, <code>agent-permission-mode</code>, <code>agent-broad-permissions</code></div>
-        <div class="src">Handrail report<sup><a href="#src-8">[8]</a></sup></div>
+        <p>Our study of 1,200 repos found live keys in MCP configs and settings that turn off human confirmation. The wider scan then found 7 CI workflows where anyone who opens a pull request can steer an agent with a full shell, next to the repo’s secrets. No repo is named; owners are told privately first.</p>
+        <div class="catch"><b>Handrail check</b><code>mcp-inline-secret</code>, <code>agent-permission-mode</code>, <code>agent-broad-permissions</code>, <code>ci-agent-untrusted-trigger</code></div>
+        <div class="src">Handrail reports<sup><a href="#src-8">[8]</a> <a href="#src-9">[9]</a></sup></div>
       </article>
     </div>
   </div>
@@ -399,6 +399,13 @@ footer a{text-decoration:none;color:var(--fg)}
       <div class="stat"><div class="n">9,499</div><div class="l">unique agent instruction and config files scanned</div></div>
       <div class="stat"><div class="n">1 in 5</div><div class="l">repos now instruct a coding agent (36% of 10k+ star repos)</div></div>
       <div class="stat"><div class="n">0</div><div class="l">confirmed agent-hijacking injections. The risk was in configs and keys.</div></div>
+    </div>
+    <p class="sub v2">Wider scan, v0.2 · hand-checked, no key tested</p>
+    <div class="stats">
+      <div class="stat"><div class="n">8,750</div><div class="l">CI workflows that run a coding agent, in 6,263 repos</div></div>
+      <div class="stat"><div class="n">27</div><div class="l">let any PR or comment author steer the agent, after hand-check</div></div>
+      <div class="stat"><div class="n">7</div><div class="l">of those hand the outsider a full shell next to the repo’s secrets</div></div>
+      <div class="stat"><div class="n">17/18</div><div class="l">repos with a key hit in committed agent chat logs had a real-looking key</div></div>
     </div>
 
     <div class="two">
@@ -486,7 +493,7 @@ footer a{text-decoration:none;color:var(--fg)}
         <h2>Scan your own setup in ten seconds.</h2>
         <p>Run it on your laptop first. It checks ~/.claude, Claude Desktop, Cursor, Codex, Gemini and VS Code, and changes nothing.</p>
       </div>
-      <a class="btn" href="https://github.com/kanumuri9593/handrail#quick-start">npx handrail-ai scan --home</a>
+      <a class="btn" href="https://github.com/kanumuri9593/handrail#quick-start">handrail scan --home</a>
     </div>
   </div>
 </section>
@@ -504,6 +511,7 @@ footer a{text-decoration:none;color:var(--fg)}
       <li id="src-6"><a href="https://www.techradar.com/pro/amazon-ai-coding-agent-hacked-to-inject-data-wiping-commands">TechRadar, Amazon’s AI coding agent was hacked</a>, Jul 28 2025</li>
       <li id="src-7"><a href="https://www.thestack.technology/vibe-coding-ceo-deletes-production-database/">The Stack, Vibe coding CEO deletes “production” database using Replit</a>, Jul 21 2025</li>
       <li id="src-8"><a href="https://github.com/kanumuri9593/handrail/blob/main/docs/REPORT-v0.1.md">Handrail, Instructions to coding agents in the wild (study v0.1)</a>, Nov 2026</li>
+      <li id="src-9"><a href="https://github.com/kanumuri9593/handrail/blob/main/docs/REPORT-v0.2.md">Handrail, CI agents and leaked keys, hand-checked (study v0.2)</a>, Nov 2026</li>
     </ol>
   </div>
 </section>
@@ -532,7 +540,7 @@ jobs:
   ado:{file:"azure-pipelines.yml", code:`steps:
   - task: UsePythonVersion@0
     inputs: { versionSpec: '3.12' }
-  - script: pip install handrail==0.3.0
+  - script: pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
   - script: handrail scan . --format sarif -o $(Build.ArtifactStagingDirectory)/handrail.sarif
   - publish: $(Build.ArtifactStagingDirectory)
     artifact: CodeAnalysisLogs   # Scans tab
@@ -540,7 +548,7 @@ jobs:
   gitlab:{file:".gitlab-ci.yml", code:`handrail:
   image: python:3.12-slim
   script:
-    - pip install handrail==0.3.0
+    - pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
     - handrail scan . --fail-on high`},
   precommit:{file:".pre-commit-config.yaml", code:`repos:
   - repo: https://github.com/kanumuri9593/handrail
@@ -548,10 +556,11 @@ jobs:
     hooks:
       - id: handrail`},
   any:{file:"any shell step", code:`# Jenkins, Bitbucket, CircleCI, Buildkite, a Makefile...
-pipx run handrail scan . --fail-on high
+pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
+handrail scan . --fail-on high
 
-# or with Node already on the agent
-npx handrail-ai scan . --fail-on high --format json -o handrail.json`}
+# JSON for your SIEM
+handrail scan . --fail-on high --format json -o handrail.json`}
 };
 const show = k => {
   document.getElementById('int-file').textContent = ints[k].file;
