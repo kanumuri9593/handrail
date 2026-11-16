@@ -3,7 +3,8 @@
 **Evidence-based guardrails for AI coding agents.** Handrail finds dangerous agent setups before they ship, stops risky tool calls while an agent works, and catches an agent that claims "all tests pass" when it never ran them. It works with Claude Code, Cursor, Copilot, Codex, Gemini, Windsurf and MCP, on your laptop, in pre-commit, and in GitHub Actions, Azure DevOps, GitLab or any CI.
 
 ```bash
-npx handrail-ai scan .            # or: pipx run handrail scan .
+pipx install git+https://github.com/kanumuri9593/handrail   # npm + PyPI packages coming
+handrail scan .
 handrail scan . --deep            # every file + git history: deleted-but-not-gone keys, .env, chat logs, TLS off
 handrail scan --home              # your own machine: ~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code
 handrail init claude --write      # live guard + stop check in Claude Code
@@ -17,7 +18,8 @@ Every rule earned its place on real data. It was measured on 1,200 public repos 
 > - **What I measured:** [a study of 1,200 active public repos](docs/REPORT-v0.1.md) (9,499 agent instruction and config files, hand-verified). The real risk sat in *configs*, such as auto-approved MCP servers, bypassed permissions and live keys committed in MCP files, not in exotic prompt injection. Recall is at least about 97% on a random sample of unflagged files.
 > - **What I built from it:** one rule set in four places. A scanner for repos or your own laptop, a GitHub Action that blocks risky PRs (with SARIF output), a live Claude Code hook that stops dangerous tool calls, and a transcript monitor plus stop check that catch agents claiming "tests pass" after quietly skipping them. It uses only the standard library, needs no API keys, and redacts every secret.
 > - **What I'm testing now:** [`hie/`](hie/) plants hidden instructions (README text, HTML comments, code comments, AGENTS.md, invisible Unicode, fetched web pages) in a toy repo. It measures how often Claude models follow them, whether they tell the user, and whether the guard would have stopped them. **[Pilot (Nov 11)](docs/PILOT-hie-v0.1.md): 0/54 followed, and 48/48 finished runs told the user, but Opus 5.5 silently refused 6/18 and left the bug unfixed. The real risk is in configs, not blunt injection.**
-> - **Try it:** `npx handrail-ai scan .`, or `npx handrail-ai scan --home` to scan your own agent setup.
+> - **What the wider scan found (v0.2):** [8,750 CI workflows that run a coding agent](docs/REPORT-v0.2.md). After a hand-check, 27 can be steered by anyone who opens a pull request or comment, and 7 of those give that outsider an agent with a full shell next to the repo's secrets. Keys also leak through committed agent chat logs: 17 of 18 repos with a hit there had a real-looking key.
+> - **Try it:** `pipx install git+https://github.com/kanumuri9593/handrail`, then `handrail scan .`, or `handrail scan --home` to scan your own agent setup.
 
 Three tools share one rule set:
 
@@ -37,10 +39,22 @@ The [v0.1 study](docs/REPORT-v0.1.md) covered 1,200 active public repos and 9,49
 - **Structural rules carry the signal.** `mcp-auto-approve`, `agent-broad-permissions`, `agent-auto-enable-mcp` and `agent-permission-mode` each scored 100% on the hand-labeled sample.
 - **Hidden-text detectors are noise in the wild.** Zero-width, base64 and HTML-comment rules scored about 0% precision, so here they are **opt-in** (`--include-noisy`) and never high severity. Unicode bidi and tag characters are the exception: they have no benign use in instruction files.
 
+### The v0.2 wider scan (hand-checked)
+
+The [v0.2 report](docs/REPORT-v0.2.md) asked two new questions. Every number was checked by hand, and no key was tested.
+
+- **CI agents open to outsiders.** 8,750 workflow files in 6,263 repos run a coding agent. 55 switch off the action's own write-access check. After a hand-check, 27 are really reachable by any PR or comment author, and **7 (in 12 repos) give that person an agent with a full shell** in the same job as the repo's secrets.
+- **Keys in agent chat logs.** Committed `.aider` and `.specstory` histories had real-looking keys in **17 of 18** repos with a hit. That is the most reliable leak signal we found.
+- **Committed key files.** After removing test paths: GCP service-account keys in 194 repos, OpenAI or Anthropic keys in committed `.env` files in 16, and SSH keys in 425 (about 4 in 10 looked real in a sample).
+- **Comments are mostly examples.** 25 of 28 hits were sample keys, so comment scanning stays inside `--deep` and is never a default gate.
+
+Owners are told privately first. No repo is named until it is fixed and the owner agrees.
+
 ## Quick start
 
 ```bash
-npm i -g handrail-ai        # or: pipx install handrail   (both give the `handrail` command)
+pipx install git+https://github.com/kanumuri9593/handrail   # today
+# soon: npm i -g handrail-ai  or  pipx install handrail
 
 handrail scan path/to/repo
 handrail scan . --fail-on high                # CI gate: exit 1 on a high-severity finding
