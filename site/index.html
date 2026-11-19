@@ -225,7 +225,7 @@ footer a{text-decoration:none;color:var(--fg)}
       <div class="install" role="region" aria-label="Install">
         <div class="tabs" role="tablist">
           <button role="tab" aria-selected="true" data-cmd="npx handrail-ai scan .">npx</button>
-          <button role="tab" aria-selected="false" data-cmd="pipx run handrail scan .">pipx</button>
+          <button role="tab" aria-selected="false" data-cmd="pipx install git+https://github.com/kanumuri9593/handrail">pipx</button>
           <button role="tab" aria-selected="false" data-cmd="npx handrail-ai scan . --deep">deep + history</button>
           <button role="tab" aria-selected="false" data-cmd="handrail scan --home">your laptop</button>
           <button role="tab" aria-selected="false" data-cmd="handrail init claude --write">Claude Code</button>
@@ -541,7 +541,7 @@ jobs:
   ado:{file:"azure-pipelines.yml", code:`steps:
   - task: UsePythonVersion@0
     inputs: { versionSpec: '3.12' }
-  - script: pip install handrail==0.3.0
+  - script: pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
   - script: handrail scan . --format sarif -o $(Build.ArtifactStagingDirectory)/handrail.sarif
   - publish: $(Build.ArtifactStagingDirectory)
     artifact: CodeAnalysisLogs   # Scans tab
@@ -549,7 +549,7 @@ jobs:
   gitlab:{file:".gitlab-ci.yml", code:`handrail:
   image: python:3.12-slim
   script:
-    - pip install handrail==0.3.0
+    - pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
     - handrail scan . --fail-on high`},
   precommit:{file:".pre-commit-config.yaml", code:`repos:
   - repo: https://github.com/kanumuri9593/handrail
@@ -557,7 +557,7 @@ jobs:
     hooks:
       - id: handrail`},
   any:{file:"any shell step", code:`# Jenkins, Bitbucket, CircleCI, Buildkite, a Makefile...
-pip install handrail==0.3.0
+pip install git+https://github.com/kanumuri9593/handrail@v0.3.0
 handrail scan . --fail-on high
 
 # JSON for your SIEM

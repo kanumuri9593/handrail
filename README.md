@@ -3,7 +3,7 @@
 **Evidence-based guardrails for AI coding agents.** Handrail finds dangerous agent setups before they ship, stops risky tool calls while an agent works, and catches an agent that claims "all tests pass" when it never ran them. It works with Claude Code, Cursor, Copilot, Codex, Gemini, Windsurf and MCP, on your laptop, in pre-commit, and in GitHub Actions, Azure DevOps, GitLab or any CI.
 
 ```bash
-npx handrail-ai scan .            # or: pipx run handrail scan .
+npx handrail-ai scan .            # or, without Node: pipx install git+https://github.com/kanumuri9593/handrail
 handrail scan . --deep            # every file + git history: deleted-but-not-gone keys, .env, chat logs, TLS off
 handrail scan --home              # your own machine: ~/.claude, Claude Desktop, Cursor, Codex, Gemini, VS Code
 handrail init claude --write      # live guard + stop check in Claude Code
@@ -18,7 +18,7 @@ Every rule earned its place on real data. It was measured on 1,200 public repos 
 > - **What I built from it:** one rule set in four places. A scanner for repos or your own laptop, a GitHub Action that blocks risky PRs (with SARIF output), a live Claude Code hook that stops dangerous tool calls, and a transcript monitor plus stop check that catch agents claiming "tests pass" after quietly skipping them. It uses only the standard library, needs no API keys, and redacts every secret.
 > - **What I'm testing now:** [`hie/`](hie/) plants hidden instructions (README text, HTML comments, code comments, AGENTS.md, invisible Unicode, fetched web pages) in a toy repo. It measures how often Claude models follow them, whether they tell the user, and whether the guard would have stopped them. **[Pilot (Nov 11)](docs/PILOT-hie-v0.1.md): 0/54 followed, and 48/48 finished runs told the user, but Opus 5.5 silently refused 6/18 and left the bug unfixed. The real risk is in configs, not blunt injection.**
 > - **What the wider scan found (v0.2):** [8,750 CI workflows that run a coding agent](docs/REPORT-v0.2.md). After a hand-check, 27 can be steered by anyone who opens a pull request or comment, and 7 of those give that outsider an agent with a full shell next to the repo's secrets. Keys also leak through committed agent chat logs: 17 of 18 repos with a hit there had a real-looking key.
-> - **Try it:** `npx handrail-ai scan .` (or `pipx run handrail scan .`), or `npx handrail-ai scan --home` to scan your own agent setup.
+> - **Try it:** `npx handrail-ai scan .`, or `npx handrail-ai scan --home` to scan your own agent setup.
 
 Three tools share one rule set:
 
@@ -52,7 +52,7 @@ Owners are told privately first. No repo is named until it is fixed and the owne
 ## Quick start
 
 ```bash
-npm i -g handrail-ai        # or: pipx install handrail   (both give the `handrail` command)
+npm i -g handrail-ai        # or: pipx install git+https://github.com/kanumuri9593/handrail   (both give the `handrail` command)
 
 handrail scan path/to/repo
 handrail scan . --fail-on high                # CI gate: exit 1 on a high-severity finding
