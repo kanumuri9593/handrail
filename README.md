@@ -10,7 +10,7 @@ handrail scan --home              # your own machine: ~/.claude, Claude Desktop,
 handrail init claude --write      # live guard + stop check in Claude Code
 ```
 
-Every rule earned its place on real data. It was measured on 1,200 public repos (9,499 agent files, hand-verified), and rules that cried wolf were made opt-in. It needs only Python 3.10+, uses no network or API key, and redacts every secret.
+Every rule earned its place on real data. It was measured on 1,200 public repos (9,499 agent files, hand-verified), and rules that cried wolf were made opt-in. It needs only Python 3.9+, uses no network or API key, and redacts every secret.
 
 > **For reviewers, a 5-minute read**
 >
@@ -29,7 +29,7 @@ Three tools share one rule set:
 | **`handrail guard`** (`hooks/guard.py`) | Live, before each agent tool call | Blocks remote-code execution, `rm -rf /`, exfiltration, and an agent switching itself into bypass mode. Asks first before credential reads, `--no-verify`, pushes and deploys, CI or hook edits, test skips, and secrets being written to files |
 | **`handrail audit`** and **`handrail stop-check`** (`monitor/`, `hooks/stop_check.py`) | After a session, or as the agent tries to end its turn | What the agent actually did: risky commands, secret reads, guardrail tampering, test tampering, work outside the workspace, outward actions, and **unverified claims** ("all tests pass" with no passing run behind it, claimed right after a failure, or reached by skipping tests without saying so). Risky actions right after a tool result that told the agent what to do are raised to high |
 
-It needs only the Python 3.10+ standard library, with no API keys and no network. Secret values are always redacted in output.
+It needs only the Python 3.9+ standard library, with no API keys and no network. Secret values are always redacted in output.
 
 ## Why these rules
 

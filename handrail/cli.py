@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+import signal
+
 import json
 import os
 import shlex
@@ -100,6 +102,8 @@ def _init(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    if hasattr(signal, "SIGPIPE"):  # `handrail rules | head` should end quietly, not with a traceback
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__.strip())
         return 0
