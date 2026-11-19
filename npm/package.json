@@ -6,7 +6,7 @@
   "files": ["bin/", "py/", "README.md", "LICENSE"],
   "engines": { "node": ">=18" },
   "keywords": ["ai", "agents", "claude-code", "mcp", "security", "guardrails", "ci", "sarif", "prompt-injection", "cursor", "copilot"],
-  "homepage": "https://handrail.oneenergytogether.com",
+  "homepage": "https://handrail-axa.pages.dev",
   "repository": { "type": "git", "url": "git+https://github.com/kanumuri9593/handrail.git" },
   "author": "Yeswanth Varma Kanumuri",
   "license": "MIT",
