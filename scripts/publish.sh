@@ -13,7 +13,8 @@ echo "Publishing Handrail $VERSION"
 if [ "$(curl -s -o /dev/null -w '%{http_code}' https://registry.npmjs.org/handrail-ai/$VERSION)" = "200" ]; then
   echo "npm: handrail-ai@$VERSION is already published"
 else
-  (cd npm && { npm whoami >/dev/null 2>&1 || npm login --auth-type=web; } && npm publish --access public)
+  (cd npm && { npm whoami >/dev/null 2>&1 || npm login --auth-type=web; } && npm publish --access public --auth-type=web)
+  echo "npm may hold a brand-new package for a few minutes (a 0.0.0-stage placeholder) before 0.3.0 appears. Do not publish again."
 fi
 
 # --- PyPI ------------------------------------------------------------

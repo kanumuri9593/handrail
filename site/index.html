@@ -224,12 +224,13 @@ footer a{text-decoration:none;color:var(--fg)}
       <p class="lede">Handrail finds risky agent setups before they ship, blocks dangerous tool calls while an agent works, and catches an agent that says “all tests pass” when it never ran them. Every rule was measured on 1,200 public repos first.</p>
       <div class="install" role="region" aria-label="Install">
         <div class="tabs" role="tablist">
-          <button role="tab" aria-selected="true" data-cmd="pipx install git+https://github.com/kanumuri9593/handrail &amp;&amp; handrail scan .">install + scan</button>
-          <button role="tab" aria-selected="false" data-cmd="handrail scan . --deep">deep + history</button>
+          <button role="tab" aria-selected="true" data-cmd="npx handrail-ai scan .">npx</button>
+          <button role="tab" aria-selected="false" data-cmd="pipx install git+https://github.com/kanumuri9593/handrail">pipx</button>
+          <button role="tab" aria-selected="false" data-cmd="npx handrail-ai scan . --deep">deep + history</button>
           <button role="tab" aria-selected="false" data-cmd="handrail scan --home">your laptop</button>
           <button role="tab" aria-selected="false" data-cmd="handrail init claude --write">Claude Code</button>
         </div>
-        <div class="cmd"><code id="cmd">pipx install git+https://github.com/kanumuri9593/handrail &amp;&amp; handrail scan .</code><button class="copy" data-copy="#cmd">Copy</button></div>
+        <div class="cmd"><code id="cmd">npx handrail-ai scan .</code><button class="copy" data-copy="#cmd">Copy</button></div>
       </div>
       <div class="proof">
         <a href="#evidence"><b>1,200</b> repos studied</a>
@@ -240,7 +241,7 @@ footer a{text-decoration:none;color:var(--fg)}
     </div>
     <div class="term" aria-label="Example scan output">
       <div class="term-bar"><i></i><i></i><i></i><b>~/acme-api</b></div>
-<pre><span class="t-d">$</span> <span class="t-s">handrail scan .</span>
+<pre><span class="t-d">$</span> <span class="t-s">npx handrail-ai scan .</span>
 <span class="t-h">HIGH  </span> agent-permission-mode   <span class="t-d">.claude/settings.json:1</span>
        <span class="t-d">└ defaultMode: bypassPermissions</span>
 <span class="t-h">HIGH  </span> agent-broad-permissions <span class="t-d">.claude/settings.json:1</span>
@@ -493,7 +494,7 @@ footer a{text-decoration:none;color:var(--fg)}
         <h2>Scan your own setup in ten seconds.</h2>
         <p>Run it on your laptop first. It checks ~/.claude, Claude Desktop, Cursor, Codex, Gemini and VS Code, and changes nothing.</p>
       </div>
-      <a class="btn" href="https://github.com/kanumuri9593/handrail#quick-start">handrail scan --home</a>
+      <a class="btn" href="https://github.com/kanumuri9593/handrail#quick-start">npx handrail-ai scan --home</a>
     </div>
   </div>
 </section>
